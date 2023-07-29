@@ -22,7 +22,7 @@ class Encryption {
         this.chunkBuffer = (buffer, size) => {
             const chunks = [];
             for (let i = 0; i < buffer.length; i += size) {
-                chunks.push(buffer.subarray(i, i + size));
+                chunks.push(new Uint8Array(buffer.subarray(i, i + size)));
             }
             return chunks;
         };
@@ -114,29 +114,36 @@ class Encryption {
             const decrypted = yield this.decryptMessage(encryptedMessage, key, iv);
             return (decrypted);
         });
-        this.encryptKeyPair = (keyPair) => {
-            const publicKey = process.env.MASTER_PUBLIC_KEY;
-            const stringedKeys = JSON.stringify(keyPair);
-            if (typeof publicKey == "string") {
-                const keyPairBuffer = Buffer.from(stringedKeys);
-                const chunks = this.chunkBuffer(keyPairBuffer, 300);
-                const encryptedChunks = chunks.map(chunk => {
-                    return crypto_1.default.publicEncrypt(publicKey, chunk);
-                });
-                return Buffer.concat(encryptedChunks).toString("base64");
+        this.encryptKeyPair = (keyPair) => __awaiter(this, void 0, void 0, function* () {
+            const groupKey = process.env.KEY;
+            if (typeof groupKey == "string") {
+                const { key, iv } = this.extractKeysandIv(groupKey);
+                const stringedKeyPair = JSON.stringify(keyPair);
+                const encryptedKeyPair = yield this.encryptMessage(stringedKeyPair, key, iv);
+                return encryptedKeyPair;
             }
             else {
-                throw new Error("No public key found in environment");
+                throw new Error("could not encrypt key pair");
             }
-        };
+        });
+        this.decryptKeyPair = (encryptedKeyPair) => __awaiter(this, void 0, void 0, function* () {
+            const groupKey = process.env.KEY;
+            if (typeof groupKey == "string") {
+                const { key, iv } = this.extractKeysandIv(groupKey);
+                const decryptedKeyPair = yield this.decryptMessage(encryptedKeyPair, key, iv);
+                if (decryptedKeyPair) {
+                    const keyPair = JSON.parse(decryptedKeyPair);
+                    return keyPair;
+                }
+                else {
+                    throw new Error("could not decrypt data");
+                }
+            }
+            else {
+                throw new Error("could not find decryption key");
+            }
+        });
         this.algorithm = "aes-192-cbc";
     }
 }
-const test = () => __awaiter(void 0, void 0, void 0, function* () {
-    const encryption = new Encryption();
-    const keyPair = yield encryption.generateKeyPair();
-    console.log(encryption.encryptKeyPair(keyPair));
-});
-test();
 exports.default = Encryption;
-module.exports = Encryption;

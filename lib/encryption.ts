@@ -1,5 +1,5 @@
 import crypto from "crypto"
-import fs from "fs"
+
 import utils from "util"
 
 const randomFillPromise = utils.promisify(crypto.randomFill)
@@ -18,7 +18,7 @@ class Encryption{
                 
         const chunks = []
         for (let i = 0; i< buffer.length; i+= size){
-            chunks.push(buffer.subarray(i,i+size))
+            chunks.push(new Uint8Array(buffer.subarray(i,i+size)))
         }
         return chunks
 
@@ -121,33 +121,42 @@ class Encryption{
        return (decrypted)
     }
 
-    encryptKeyPair=(keyPair:{privateKey:crypto.KeyObject, publicKey:crypto.KeyObject})=>{
-        const publicKey = process.env.MASTER_PUBLIC_KEY
-        const stringedKeys = JSON.stringify(keyPair)
-        if(typeof publicKey == "string"){
-            const  keyPairBuffer = Buffer.from(stringedKeys)
-            const chunks = this.chunkBuffer(keyPairBuffer,300)
-            const encryptedChunks:Buffer[] = chunks.map(chunk=>{
-            return crypto.publicEncrypt(publicKey,chunk)
-            })
-            return Buffer.concat(encryptedChunks).toString("base64")
+    encryptKeyPair = async(keyPair:{privateKey:crypto.KeyObject, publicKey:crypto.KeyObject })=>{
+        const groupKey = process.env.KEY
+        if(typeof groupKey == "string"){
+            const {key,iv} = this.extractKeysandIv(groupKey)
+            const stringedKeyPair = JSON.stringify(keyPair)
+            const encryptedKeyPair = await this.encryptMessage(stringedKeyPair,key,iv)
+            return encryptedKeyPair
         }
         else{
-            throw new Error("No public key found in environment")
+            throw new Error("could not encrypt key pair")
+        }
+    }
+
+    decryptKeyPair = async (encryptedKeyPair:string)=>{
+        const groupKey = process.env.KEY
+        if(typeof groupKey == "string"){
+            const {key,iv}= this.extractKeysandIv(groupKey)
+            const decryptedKeyPair = await this.decryptMessage(encryptedKeyPair,key,iv)
+            if(decryptedKeyPair){
+                const keyPair = JSON.parse(decryptedKeyPair)
+                return keyPair
+            }
+            else{
+                throw new Error("could not decrypt data")
+            }
+        }
+        else{
+            throw new Error("could not find decryption key")
         }
 
     }
-}
-
-const test = async ()=>{
-    const encryption = new Encryption()
-    
-    const keyPair = await encryption.generateKeyPair()
-    console.log(encryption.encryptKeyPair(keyPair))
 
 }
 
-test()
+
+
 
 
 
@@ -155,7 +164,7 @@ test()
 
 
 export default  Encryption
-module.exports  = Encryption
+
 
 
 

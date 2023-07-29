@@ -2,8 +2,8 @@ import express from "express"
 import http from "http"
 import conncectToDatabase from "./mongo/mongoconnect"
 import "./models/users"
-import "./lib/encryption"
-// import "./models/keys"
+
+import "./models/keys"
 require("dotenv").config()
 conncectToDatabase()
 

@@ -16,25 +16,31 @@ const mongoose_1 = __importDefault(require("mongoose"));
 const encryption_1 = __importDefault(require("../lib/encryption"));
 const encryption = new encryption_1.default();
 const keySchema = new mongoose_1.default.Schema({
-    privateKey: Object,
-    prublicKey: Object
+    _id: { type: String, required: true },
+    keys: { type: String, required: true }
 });
 const Key = mongoose_1.default.model("Key", keySchema);
 const createKey = () => __awaiter(void 0, void 0, void 0, function* () {
-    const { publicKey, privateKey } = yield encryption.generateKeyPair();
+    const keyPair = yield encryption.generateKeyPair();
+    const encrypedKeyPair = yield encryption.encryptKeyPair(keyPair);
     const key = new Key({
-        privateKey: privateKey,
-        prublicKey: publicKey
+        _id: "todujinrin@gmail.com",
+        keys: encrypedKeyPair
     });
     try {
         yield key.save();
+        console.log("saved to database");
     }
     catch (error) {
         console.log(error);
     }
 });
+// createKey()
 const getKey = () => __awaiter(void 0, void 0, void 0, function* () {
-    const keys = yield Key.findById("64c42dca8b9fb583ab531a23");
-    console.log(typeof (keys === null || keys === void 0 ? void 0 : keys.privateKey));
+    const keys = yield Key.findById("todujinrin@gmail.com").select({ keys: 1 });
+    if (keys) {
+        const keyPairs = yield encryption.decryptKeyPair(keys.keys);
+        console.log(keyPairs);
+    }
 });
 getKey();

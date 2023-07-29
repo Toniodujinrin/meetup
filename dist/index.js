@@ -7,8 +7,7 @@ const express_1 = __importDefault(require("express"));
 const http_1 = __importDefault(require("http"));
 const mongoconnect_1 = __importDefault(require("./mongo/mongoconnect"));
 require("./models/users");
-require("./lib/encryption");
-// import "./models/keys"
+require("./models/keys");
 require("dotenv").config();
 (0, mongoconnect_1.default)();
 const app = (0, express_1.default)();
