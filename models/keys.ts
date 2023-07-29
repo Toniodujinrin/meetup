@@ -36,5 +36,3 @@ const getKey = async ()=>{
     }
 
 }
-
-getKey()

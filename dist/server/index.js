@@ -6,7 +6,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
 const http_1 = __importDefault(require("http"));
 const startup_1 = __importDefault(require("./startup"));
-const mongoconnect_1 = __importDefault(require("./mongo/mongoconnect"));
+const mongoconnect_1 = __importDefault(require("../mongo/mongoconnect"));
 require("dotenv").config();
 (0, mongoconnect_1.default)();
 const app = (0, express_1.default)();
