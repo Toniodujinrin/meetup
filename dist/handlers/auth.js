@@ -35,63 +35,41 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+const http_status_codes_1 = require("http-status-codes");
 const emiters_1 = __importDefault(require("../lib/emiters"));
 const users_1 = __importStar(require("../models/users"));
-const otps_1 = __importDefault(require("../models/otps"));
-const http_status_codes_1 = require("http-status-codes");
+const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const helpers_1 = __importDefault(require("../lib/helpers"));
-const { userEmiter } = emiters_1.default;
-const { createUserSchema, verifyAccountSchema, verifyEmailSchema, getUserSchema } = users_1.userSchemas;
-userEmiter.on("get user", (args) => {
-    const { email, res } = args[0];
-    const { error } = getUserSchema.validate(email);
+const { authenticationEmiter } = emiters_1.default;
+const { createUserSchema } = users_1.userSchemas;
+authenticationEmiter.on("authenticate", (args) => __awaiter(void 0, void 0, void 0, function* () {
+    const { body, res } = args[0];
+    const { error } = createUserSchema.validate(body);
     if (error)
         return res.status(http_status_codes_1.StatusCodes.BAD_REQUEST).send(error.message);
-    res.send(email);
-});
-userEmiter.on("create user", (args) => __awaiter(void 0, void 0, void 0, function* () {
-    const { body, res } = args[0];
-    try {
-        const { error } = createUserSchema.validate(body);
-        if (error) {
-            res.status(http_status_codes_1.StatusCodes.BAD_REQUEST).send(error.message);
-            return;
-        }
-        else {
-            const { email, password } = body;
-            let user = yield users_1.default.findById(email);
-            if (user)
-                return res.status(http_status_codes_1.StatusCodes.BAD_REQUEST).send("user already exists");
+    else {
+        const { email, password } = body;
+        const user = yield users_1.default.findById(email);
+        if (user) {
             const hashedPassword = helpers_1.default.passwordHasher(password);
-            user = new users_1.default({
-                _id: email,
-                password: hashedPassword
-            });
-            yield user.save();
-            const otp = yield helpers_1.default.OTPSender(email, 5);
-            if (otp) {
-                const otpObject = new otps_1.default({
-                    _id: otp,
-                    email
-                });
-                yield otpObject.save();
+            if (hashedPassword == user.password) {
+                const payload = {
+                    _id: user._id,
+                    isVerified: user.isVerified,
+                    emailVerified: user.emailVerified,
+                    accountVerified: user.accountVerified
+                };
+                const key = process.env.KEY;
+                if (typeof key == "string") {
+                    const token = `Bearer ${jsonwebtoken_1.default.sign(payload, key)}`;
+                    res.header("Authotization", token);
+                    res.status(http_status_codes_1.StatusCodes.OK).json({ status: "succes" });
+                }
             }
-            res.status(http_status_codes_1.StatusCodes.CREATED).send("user profile created");
+            else
+                res.status(http_status_codes_1.StatusCodes.BAD_REQUEST).send("Invalid username or password");
         }
+        else
+            res.send(http_status_codes_1.StatusCodes.BAD_REQUEST).send("Invalid username or password");
     }
-    catch (err) {
-        console.log(err);
-        res.status(http_status_codes_1.StatusCodes.INTERNAL_SERVER_ERROR).send("server error ");
-    }
-}));
-userEmiter.on("verify account", (args) => __awaiter(void 0, void 0, void 0, function* () {
-    const { body, res } = args[0];
-    try {
-        const { error } = verifyAccountSchema.validate(body);
-    }
-    catch (error) {
-    }
-}));
-userEmiter.on("verify email", (args) => __awaiter(void 0, void 0, void 0, function* () {
-    const { body, res } = args[0];
 }));

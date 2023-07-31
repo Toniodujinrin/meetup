@@ -8,11 +8,20 @@ const conversationSchema = new mongoose_1.default.Schema({
     users: { type: [String], required: true },
     name: { type: String, required: true },
     created: { default: Date.now(), type: Number },
-    messages: [{ type: mongoose_1.default.Schema.Types.ObjectId, ref: "Message" }],
+    messages: [{ type: mongoose_1.default.Schema.Types.ObjectId, ref: "Messages" }],
     conversationPic: {
-        url: { type: String },
-        publicId: { type: String }
+        url: { type: String, required: true },
+        publicId: { type: String, required: true }
     }
 });
 const Conversation = mongoose_1.default.model("Conversation", conversationSchema);
-exports.default = Conversation;
+const makeCourse = () => {
+    console.log('creating course');
+    // const conversation = new Conversation({
+    //    users:["todujinrin@gmail.com"],
+    //    name:"test",
+    // })
+    // const res = await conversation.save()
+    // console.log(res)
+};
+exports.default = makeCourse;

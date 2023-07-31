@@ -5,9 +5,11 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
 const http_1 = __importDefault(require("http"));
-const startup_1 = __importDefault(require("./startup"));
+const startup_1 = __importDefault(require("./server/startup"));
 const mongoconnect_1 = __importDefault(require("./mongo/mongoconnect"));
+const processes_1 = __importDefault(require("./lib/processes"));
 require("dotenv").config();
+processes_1.default.envChecker();
 (0, mongoconnect_1.default)();
 const app = (0, express_1.default)();
 (0, startup_1.default)(app);

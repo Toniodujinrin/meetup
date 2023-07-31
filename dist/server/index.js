@@ -1,17 +1,16 @@
 "use strict";
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
-Object.defineProperty(exports, "__esModule", { value: true });
-const express_1 = __importDefault(require("express"));
-const http_1 = __importDefault(require("http"));
-const startup_1 = __importDefault(require("./startup"));
-const mongoconnect_1 = __importDefault(require("../mongo/mongoconnect"));
-require("dotenv").config();
-(0, mongoconnect_1.default)();
-const app = (0, express_1.default)();
-(0, startup_1.default)(app);
-http_1.default.createServer(app)
-    .listen(process.env.PORT, () => {
-    console.log(`server listening on port ${process.env.PORT}`);
-});
+// import express from "express"
+// import http from "http"
+// import startup from "./startup"
+// import conncectToDatabase from "../mongo/mongoconnect"
+// import makeCourse from "./conversations"
+// require("dotenv").config()
+// //conncectToDatabase()
+// console.log("hello world")
+// makeCourse()
+// const app = express()
+// startup(app)
+//  http.createServer(app)
+// .listen(process.env.PORT,()=>{
+//   console.log(`server listening on port ${process.env.PORT}`)
+// })

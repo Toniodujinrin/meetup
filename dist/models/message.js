@@ -5,9 +5,8 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const mongoose_1 = __importDefault(require("mongoose"));
 const messageSchema = new mongoose_1.default.Schema({
-    timeStamp: { default: Date.now(), required: true },
-    status: { type: String, enum: ["read", "delivered"] },
-    conversionId: { type: String, require: true },
+    timeStamp: { type: Number, default: Date.now(), required: true },
+    status: { type: String, default: "delivered", enum: ["read", "delivered"] },
     body: String
 });
 const Message = mongoose_1.default.model("Message", messageSchema);

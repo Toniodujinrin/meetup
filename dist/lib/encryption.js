@@ -45,8 +45,8 @@ class Encryption {
             const iv = yield randomFillPromise(new Uint8Array(16));
             const key = yield scryptPromise("password", "salt", 24);
             const groupKeyAndVector = {
-                key: key,
-                iv: iv
+                key,
+                iv
             };
             return JSON.stringify(groupKeyAndVector);
         });
@@ -54,7 +54,7 @@ class Encryption {
             const groupKeyObject = JSON.parse(groupKey);
             const key = Buffer.from(groupKeyObject.key.data);
             const iv = new Uint8Array(Object.values(groupKeyObject.iv));
-            return ({ key: key, iv: iv });
+            return ({ key, iv });
         };
         this.encryptMessage = (data, key, iv) => __awaiter(this, void 0, void 0, function* () {
             try {

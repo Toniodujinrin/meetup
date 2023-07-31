@@ -1,21 +1,20 @@
 import express from "express"
 import emiter from "../lib/emiters"
 import "../handlers/users"
-
-
+const {userEmiter}= emiter
 const router = express.Router()
 router.use(function(req,res,next){
     next()
 })
 
 router.get('/:email', (req,res)=>{
-    emiter.userEmiter.emit("get user",[{email:req.params.email, res:res}])
+    userEmiter.emit("get user",[{email:req.params.email,res}])
 })
-
+router.post("/verifyAccount",(req,res)=>{
+    userEmiter.emit("verify account", [{body:req.body, res}])
+})
 router.post("/", (req,res)=>{
-    
-    emiter.userEmiter.emit("create user", [{body:req.body,res:res}])
-
+    userEmiter.emit("create user", [{body:req.body,res}])
 })
 
 

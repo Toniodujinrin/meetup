@@ -1,5 +1,6 @@
 import crypto from "crypto"
 import axios from "axios"
+import { error } from "console"
 
 
 class Helpers{
@@ -26,9 +27,15 @@ class Helpers{
             from:"Meet Up",
             text:`use this code as your one time password ${result}`
         }
+        try {
+            await axios.post(`${process.env.EMAIL_SERVER}/send`,payload)
+           
+            return result
+        } catch (error) {
+            console.log(error)
+            return null
+        }
         
-        await axios.post(`${process.env.EMAIL_SERVER}/send`,payload)
-        return result
     }
 }
 
