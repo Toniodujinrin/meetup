@@ -3,24 +3,31 @@ import http from "http"
 import startup from "./server/startup"
 import conncectToDatabase from "./lib/mongoconnect"
 import Processes from "./lib/processes"
-
+import {Server} from "socket.io"
+import socketHandler from "./server/socket"
 
 
 require("dotenv").config()
 Processes.envChecker()
 conncectToDatabase()
-
-
+//Processes.otpProcess()
 
 const app = express()
 startup(app)
 
 
+const server = http.createServer(app)
+
+const io = new Server(server,{
+  cors:{
+    origin:`http://localhost:3000`
+  }
+})
+
+socketHandler(io)
 
 
 
-
-http.createServer(app)
-.listen(process.env.PORT,()=>{
+server.listen(process.env.PORT,()=>{
   console.log(`server listening on port ${process.env.PORT}`)
 })

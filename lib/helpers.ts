@@ -1,6 +1,6 @@
 import crypto from "crypto"
 import axios from "axios"
-import { error } from "console"
+import jwt from "jsonwebtoken"
 
 
 class Helpers{
@@ -36,6 +36,14 @@ class Helpers{
             return null
         }
         
+    }
+    static generateUserToken = (payload:any)=>{
+      const key = process.env.KEY 
+      if(typeof key == "string"){
+        const token = `Bearer ${jwt.sign(payload, key)}`
+        return token
+      }
+      else throw new Error("could not generate token")
     }
 }
 

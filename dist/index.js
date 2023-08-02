@@ -6,14 +6,23 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
 const http_1 = __importDefault(require("http"));
 const startup_1 = __importDefault(require("./server/startup"));
-const mongoconnect_1 = __importDefault(require("./mongo/mongoconnect"));
+const mongoconnect_1 = __importDefault(require("./lib/mongoconnect"));
 const processes_1 = __importDefault(require("./lib/processes"));
+const socket_io_1 = require("socket.io");
+const socket_1 = __importDefault(require("./server/socket"));
 require("dotenv").config();
 processes_1.default.envChecker();
 (0, mongoconnect_1.default)();
+//Processes.otpProcess()
 const app = (0, express_1.default)();
 (0, startup_1.default)(app);
-http_1.default.createServer(app)
-    .listen(process.env.PORT, () => {
+const server = http_1.default.createServer(app);
+const io = new socket_io_1.Server(server, {
+    cors: {
+        origin: `http://localhost:3000`
+    }
+});
+(0, socket_1.default)(io);
+server.listen(process.env.PORT, () => {
     console.log(`server listening on port ${process.env.PORT}`);
 });

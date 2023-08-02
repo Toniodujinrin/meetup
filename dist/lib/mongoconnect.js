@@ -11,25 +11,19 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
-var _a;
 Object.defineProperty(exports, "__esModule", { value: true });
-const otps_1 = __importDefault(require("../models/otps"));
-class Processes {
-}
-_a = Processes;
-Processes.envChecker = () => {
-    if (process.env.PORT && process.env.MONGO_URI && process.env.KEY, process.env.EMAIL_SERVER, process.env.HASHING_SECRET)
-        return;
-    else {
-        console.log("\x1b[31m%s\x1b[0m", "Error: missing environmental properties, exiting ...");
-        process.exit(1);
+const mongoose_1 = __importDefault(require("mongoose"));
+const connectToDatabase = () => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        if (process.env.MONGO_URI) {
+            yield mongoose_1.default.connect(process.env.MONGO_URI);
+            console.log("connected to database");
+        }
+        else
+            console.log("no mongodb uri found");
     }
-};
-Processes.otpProcess = () => __awaiter(void 0, void 0, void 0, function* () {
-    console.log("\x1b[33m%s\x1b[0m", "OTP process started ...");
-    yield otps_1.default.deleteMany({ expiry: { $lt: Date.now() } });
-    setInterval(() => __awaiter(void 0, void 0, void 0, function* () {
-        yield otps_1.default.deleteMany({ expiry: { $lt: Date.now() } });
-    }), 10000);
+    catch (err) {
+        console.log(err);
+    }
 });
-exports.default = Processes;
+exports.default = connectToDatabase;

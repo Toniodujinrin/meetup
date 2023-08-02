@@ -38,38 +38,42 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const http_status_codes_1 = require("http-status-codes");
 const emiters_1 = __importDefault(require("../lib/emiters"));
 const users_1 = __importStar(require("../models/users"));
-const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
+const lodash_1 = __importDefault(require("lodash"));
+const encryption_1 = __importDefault(require("../lib/encryption"));
 const helpers_1 = __importDefault(require("../lib/helpers"));
 const { authenticationEmiter } = emiters_1.default;
+const encryption = new encryption_1.default();
 const { createUserSchema } = users_1.userSchemas;
 authenticationEmiter.on("authenticate", (args) => __awaiter(void 0, void 0, void 0, function* () {
     const { body, res } = args[0];
-    const { error } = createUserSchema.validate(body);
-    if (error)
-        return res.status(http_status_codes_1.StatusCodes.BAD_REQUEST).send(error.message);
-    else {
+    try {
+        const { error } = createUserSchema.validate(body);
+        if (error)
+            return res.status(http_status_codes_1.StatusCodes.BAD_REQUEST).send(error.message);
         const { email, password } = body;
-        const user = yield users_1.default.findById(email);
+        const user = yield users_1.default.findById(email).select({
+            isVerified: 1, emailVerified: 1, accountVerified: 1, password: 1, keyPair: 1
+        });
         if (user) {
             const hashedPassword = helpers_1.default.passwordHasher(password);
             if (hashedPassword == user.password) {
-                const payload = {
-                    _id: user._id,
-                    isVerified: user.isVerified,
-                    emailVerified: user.emailVerified,
-                    accountVerified: user.accountVerified
-                };
-                const key = process.env.KEY;
-                if (typeof key == "string") {
-                    const token = `Bearer ${jsonwebtoken_1.default.sign(payload, key)}`;
-                    res.header("Authotization", token);
-                    res.status(http_status_codes_1.StatusCodes.OK).json({ status: "succes" });
+                const _user = lodash_1.default.omit(user.toJSON(), ["password"]);
+                if (user.keyPair) {
+                    const decryptedKeyPair = yield encryption.decryptKeyPair(user.keyPair);
+                    _user.keyPair = decryptedKeyPair;
                 }
+                const token = helpers_1.default.generateUserToken(_user);
+                res.header("authotization", token);
+                return res.status(http_status_codes_1.StatusCodes.OK).json({ status: "success" });
             }
             else
                 res.status(http_status_codes_1.StatusCodes.BAD_REQUEST).send("Invalid username or password");
         }
         else
-            res.send(http_status_codes_1.StatusCodes.BAD_REQUEST).send("Invalid username or password");
+            res.status(http_status_codes_1.StatusCodes.BAD_REQUEST).send("Invalid username or password");
+    }
+    catch (err) {
+        console.log(err);
+        res.status(http_status_codes_1.StatusCodes.INTERNAL_SERVER_ERROR).send("server error");
     }
 }));

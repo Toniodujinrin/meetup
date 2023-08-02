@@ -15,6 +15,7 @@ var _a;
 Object.defineProperty(exports, "__esModule", { value: true });
 const crypto_1 = __importDefault(require("crypto"));
 const axios_1 = __importDefault(require("axios"));
+const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 class Helpers {
 }
 _a = Helpers;
@@ -49,4 +50,13 @@ Helpers.OTPSender = (email, length) => __awaiter(void 0, void 0, void 0, functio
         return null;
     }
 });
+Helpers.generateUserToken = (payload) => {
+    const key = process.env.KEY;
+    if (typeof key == "string") {
+        const token = `Bearer ${jsonwebtoken_1.default.sign(payload, key)}`;
+        return token;
+    }
+    else
+        throw new Error("could not generate token");
+};
 exports.default = Helpers;

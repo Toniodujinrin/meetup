@@ -4,6 +4,7 @@ import auth from "../routes/auth"
 import cors from "cors"
 
 const startup = (app:Express)=>{
+    app.use(express.static("public"))
     app.use(cors())
     app.use(express.json())
     app.use("/api/users",users)
