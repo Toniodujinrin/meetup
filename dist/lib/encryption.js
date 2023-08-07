@@ -13,43 +13,18 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const crypto_1 = __importDefault(require("crypto"));
-const util_1 = __importDefault(require("util"));
-const randomFillPromise = util_1.default.promisify(crypto_1.default.randomFill);
-const scryptPromise = util_1.default.promisify(crypto_1.default.scrypt);
-const generateKeyPairPromise = util_1.default.promisify(crypto_1.default.generateKeyPair);
+const node_rsa_1 = __importDefault(require("node-rsa"));
 class Encryption {
     constructor() {
-        this.chunkBuffer = (buffer, size) => {
-            const chunks = [];
-            for (let i = 0; i < buffer.length; i += size) {
-                chunks.push(new Uint8Array(buffer.subarray(i, i + size)));
-            }
-            return chunks;
+        this.generateKeyPair = () => {
+            const key = new node_rsa_1.default({ b: 512 });
+            const publicKey = key.exportKey("pkcs1-public-pem").replace("\\n", "");
+            const privateKey = key.exportKey("pkcs1-private-pem").replace("\\n", "");
+            return { publicKey, privateKey };
         };
-        this.generateKeyPair = () => __awaiter(this, void 0, void 0, function* () {
-            const options = {
-                modulusLength: 4096,
-                publicKeyEncoding: {
-                    type: "spki",
-                    format: "pem"
-                },
-                privateKeyEncoding: {
-                    type: "pkcs8",
-                    format: "pem"
-                }
-            };
-            const keyPair = yield generateKeyPairPromise("rsa", options);
-            return keyPair;
-        });
-        this.createGroupKeyAndVector = () => __awaiter(this, void 0, void 0, function* () {
-            const iv = yield randomFillPromise(new Uint8Array(16));
-            const key = yield scryptPromise("password", "salt", 24);
-            const groupKeyAndVector = {
-                key,
-                iv
-            };
-            return JSON.stringify(groupKeyAndVector);
-        });
+        this.createGroupKey = () => {
+            return crypto_1.default.randomBytes(24).toString("base64");
+        };
         this.extractKeysandIv = (groupKey) => {
             const groupKeyObject = JSON.parse(groupKey);
             const key = Buffer.from(groupKeyObject.key.data);
@@ -83,37 +58,21 @@ class Encryption {
             }
         });
         this.encryptGroupKey = (publicKey, groupKey) => {
-            const publicKeyBuffer = Buffer.from(publicKey, "base64");
-            const groupKeyBuffer = Buffer.from(groupKey);
-            try {
-                const encryptedGroupKey = crypto_1.default.publicEncrypt(publicKeyBuffer, groupKeyBuffer);
-                return encryptedGroupKey.toString("base64");
-            }
-            catch (error) {
-                console.log("could not encrypt public key");
-            }
+            let key = {
+                key: publicKey,
+                padding: crypto_1.default.constants.RSA_PKCS1_PADDING
+            };
+            const encryptedGroupKey = crypto_1.default.publicEncrypt(key, Buffer.from(groupKey, "base64")).toString('base64');
+            return encryptedGroupKey;
         };
         this.decryptGroupKey = (privateKey, encryptedGroupKey) => {
-            const privateKeyBuffer = Buffer.from(privateKey, "base64");
-            const encryptedGroupKeyBuffer = Buffer.from(encryptedGroupKey, "base64");
-            try {
-                const decryptedGroupKey = crypto_1.default.privateDecrypt(privateKeyBuffer, encryptedGroupKeyBuffer);
-                return this.extractKeysandIv(decryptedGroupKey.toString("utf-8"));
-            }
-            catch (error) {
-                console.log(error);
-            }
+            let key = {
+                key: privateKey,
+                padding: crypto_1.default.constants.RSA_PKCS1_PADDING
+            };
+            const decryptedGroupKey = crypto_1.default.privateDecrypt(key, Buffer.from(encryptedGroupKey, 'base64')).toString("base64");
+            return decryptedGroupKey;
         };
-        this.sendMessage = (message, groupKey) => __awaiter(this, void 0, void 0, function* () {
-            const { key, iv } = groupKey;
-            const encryptedMessage = yield this.encryptMessage(message, key, iv);
-            return (encryptedMessage);
-        });
-        this.readMessage = (encryptedMessage, groupKey) => __awaiter(this, void 0, void 0, function* () {
-            const { key, iv } = groupKey;
-            const decrypted = yield this.decryptMessage(encryptedMessage, key, iv);
-            return (decrypted);
-        });
         this.encryptKeyPair = (keyPair) => __awaiter(this, void 0, void 0, function* () {
             const groupKey = process.env.KEY;
             if (typeof groupKey == "string") {

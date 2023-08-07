@@ -1,3 +1,4 @@
+import Message from "../models/message"
 import OTP from "../models/otps"
 class Processes{
     static envChecker = ()=>{
@@ -10,13 +11,19 @@ class Processes{
 
     static otpProcess = async  ()=>{
         console.log("\x1b[33m%s\x1b[0m","OTP process started ...")
-        await OTP.deleteMany({expiry:{$lt:Date.now()}})
-        
         setInterval(async()=>{
             await OTP.deleteMany({expiry:{$lt:Date.now()}})
         },10000)
     }
+
+    static messageProcess = async ()=>{
+        console.log("\x1b[33m%s\x1b[0m","OTP process started ...")
+        setInterval(async ()=>{
+            await Message.deleteMany({expiry:{$lt:Date.now()}})
+        },10000)
+    } 
+
 }
 
 
-export default Processes 
+export default Processes

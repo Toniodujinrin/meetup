@@ -45,7 +45,21 @@ class Helpers{
       }
       else throw new Error("could not generate token")
     }
+
+    static checkIfSubset = (arr1:string[], arr2:string[])=>{
+       let isSubset = true
+       for(let item of arr2){
+        if(!arr1.includes(item)){
+            isSubset = false 
+            break
+        }
+        }
+
+        return isSubset
+    }
 }
+
+
 
 
 export default Helpers

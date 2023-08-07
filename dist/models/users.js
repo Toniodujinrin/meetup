@@ -15,12 +15,18 @@ const usersSchema = new mongoose_1.default.Schema({
     lastName: { type: String, trim: true, minLength: 2, maxLength: 50 },
     emailVerified: { default: false, type: Boolean },
     accountVerified: { default: false, type: Boolean },
+    contacts: [String],
     isVerified: { default: false, type: Boolean },
     lastSeen: { default: Date.now(), type: Number },
     registration: { default: Date.now(), type: Number },
     profilePic: {
         url: String,
         publicId: String
+    },
+    bio: {
+        type: String,
+        minLength: 2,
+        maxLength: 120,
     },
     conversations: [{ conversationId: String, groupKey: String }],
     publicKey: { type: String },
@@ -39,10 +45,18 @@ const userSchemas = {
         username: joi_1.default.string().required().min(2).max(50),
         firstName: joi_1.default.string().required().min(2).max(50),
         lastName: joi_1.default.string().required().min(2).max(50),
-        phone: joi_1.default.string().required()
+        phone: joi_1.default.string().required(),
+        bio: joi_1.default.string().required()
     }),
     verifyEmailSchema: joi_1.default.object({
         otp: joi_1.default.string().required().label("OTP")
+    }),
+    updateUserSchema: joi_1.default.object({
+        username: joi_1.default.string().min(2).max(50),
+        firstName: joi_1.default.string().min(2).max(50),
+        lastName: joi_1.default.string().min(2).max(50),
+        phone: joi_1.default.string(),
+        bio: joi_1.default.string()
     })
 };
 exports.userSchemas = userSchemas;

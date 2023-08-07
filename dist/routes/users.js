@@ -6,25 +6,38 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
 const emiters_1 = __importDefault(require("../lib/emiters"));
 require("../handlers/users");
+const restriction_1 = __importDefault(require("../middleware/restriction"));
 const authourization_1 = __importDefault(require("../middleware/authourization"));
 const { userEmiter } = emiters_1.default;
 const router = express_1.default.Router();
-router.use(function (req, res, next) {
-    next();
+router.get("/contacts", authourization_1.default, restriction_1.default, (req, res) => {
+    userEmiter.emit("get contacts", { req, res });
+});
+router.get("/conversations", authourization_1.default, restriction_1.default, (req, res) => {
+    userEmiter.emit("get conversations", { req, res });
+});
+router.get("/self", authourization_1.default, restriction_1.default, (req, res) => {
+    userEmiter.emit("get self", { req, res });
 });
 router.get('/:email', (req, res) => {
-    userEmiter.emit("get user", [{ params: req.params, res }]);
+    userEmiter.emit("get user", { params: req.params, res });
 });
 router.post("/verifyAccount", authourization_1.default, (req, res) => {
-    userEmiter.emit("verify account", [{ req, res }]);
+    userEmiter.emit("verify account", { req, res });
 });
 router.post("/verifyEmail", authourization_1.default, (req, res) => {
-    userEmiter.emit("verify email", [{ req, res }]);
+    userEmiter.emit("verify email", { req, res });
 });
 router.post("/", (req, res) => {
-    userEmiter.emit("create user", [{ req, res }]);
+    userEmiter.emit("create user", { req, res });
+});
+router.post("/add/:email", authourization_1.default, restriction_1.default, (req, res) => {
+    userEmiter.emit("add user", { req, res });
 });
 router.post("/resendOtp", authourization_1.default, (req, res) => {
-    userEmiter.emit("resend otp", [{ req, res }]);
+    userEmiter.emit("resend otp", { req, res });
+});
+router.put("/", authourization_1.default, restriction_1.default, (req, res) => {
+    userEmiter.emit("update user", { req, res });
 });
 exports.default = router;

@@ -9,12 +9,19 @@ const usersSchema = new mongoose.Schema({
     lastName:{type:String, trim:true, minLength:2,maxLength:50 },  
     emailVerified:{default:false, type:Boolean},
     accountVerified:{default:false, type:Boolean},
+    contacts :[String],
     isVerified:{default:false, type:Boolean} ,
     lastSeen:{default:Date.now(), type:Number},
     registration:{default:Date.now(), type:Number},
     profilePic:{
         url:String, 
         publicId:String
+    },
+    bio:{
+       type:String, 
+       minLength:2, 
+       maxLength:120,
+
     },
     conversations:[{conversationId:String, groupKey:String}],
     publicKey:{type:String},
@@ -33,20 +40,26 @@ const userSchemas = {
         email:Joi.string().required().email({minDomainSegments:2}).min(2).max(50),
         password:Joi.string().required().min(3).max(50)
     }),
-
     verifyAccountSchema: Joi.object({
         username:Joi.string().required().min(2).max(50),
         firstName:Joi.string().required().min(2).max(50),
         lastName:Joi.string().required().min(2).max(50), 
-        phone:Joi.string().required()
-
+        phone:Joi.string().required(),
+        bio:Joi.string().required()
     }),
-
     verifyEmailSchema: Joi.object({
         otp:Joi.string().required().label("OTP")
+    }),
+    updateUserSchema: Joi.object({
+        username:Joi.string().min(2).max(50),
+        firstName:Joi.string().min(2).max(50),
+        lastName:Joi.string().min(2).max(50), 
+        phone:Joi.string(),
+        bio:Joi.string()
     })
-
 }
+
+
 
 
 

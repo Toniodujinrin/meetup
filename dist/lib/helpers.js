@@ -59,4 +59,14 @@ Helpers.generateUserToken = (payload) => {
     else
         throw new Error("could not generate token");
 };
+Helpers.checkIfSubset = (arr1, arr2) => {
+    let isSubset = true;
+    for (let item of arr2) {
+        if (!arr1.includes(item)) {
+            isSubset = false;
+            break;
+        }
+    }
+    return isSubset;
+};
 exports.default = Helpers;

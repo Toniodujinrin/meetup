@@ -14,12 +14,13 @@ require("dotenv").config();
 processes_1.default.envChecker();
 (0, mongoconnect_1.default)();
 //Processes.otpProcess()
+// Processes.messageProcess()
 const app = (0, express_1.default)();
 (0, startup_1.default)(app);
 const server = http_1.default.createServer(app);
 const io = new socket_io_1.Server(server, {
     cors: {
-        origin: `http://localhost:3000`
+        origin: `http://localhost:3001`
     }
 });
 (0, socket_1.default)(io);

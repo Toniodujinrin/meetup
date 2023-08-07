@@ -1,6 +1,7 @@
 import express from "express"
 import authorization from "../middleware/authourization"
 import restriction from "../middleware/restriction"
+import "../handlers/conversations"
 import emiters from "../lib/emiters"
 const {conversationEmiter}= emiters
 const router = express.Router()
@@ -8,7 +9,15 @@ const router = express.Router()
 
 
 router.post("/",authorization, restriction, (req, res)=>{
-  conversationEmiter.emit("create coversation",[{req, res}])
+  conversationEmiter.emit("create conversation",{req, res})
+})
+
+router.post("/add", authorization,restriction, (req, res)=>{
+  conversationEmiter.emit("add to conversation", {req, res})
+})
+
+router.delete("/:conversationId",authorization, restriction, (req, res)=>{
+  conversationEmiter.emit("delete", {req,res})
 })
 
 export default router

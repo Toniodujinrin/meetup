@@ -41,23 +41,36 @@ const otps_1 = __importDefault(require("../models/otps"));
 const encryption_1 = __importDefault(require("../lib/encryption"));
 const http_status_codes_1 = require("http-status-codes");
 const helpers_1 = __importDefault(require("../lib/helpers"));
+const lodash_1 = __importDefault(require("lodash"));
 const { userEmiter } = emiters_1.default;
 const encryption = new encryption_1.default();
-const { createUserSchema, verifyAccountSchema, verifyEmailSchema, getUserSchema } = users_1.userSchemas;
-userEmiter.on("get user", (args) => __awaiter(void 0, void 0, void 0, function* () {
-    const { params, res } = args[0];
+const { createUserSchema, verifyAccountSchema, verifyEmailSchema, getUserSchema, updateUserSchema } = users_1.userSchemas;
+userEmiter.on("get user", ({ params, res }) => __awaiter(void 0, void 0, void 0, function* () {
     const { error } = getUserSchema.validate(params);
     if (error)
         return res.status(http_status_codes_1.StatusCodes.BAD_REQUEST).send(error.message);
     const { email } = params;
-    const user = yield users_1.default.findOne({ _id: email, isVerified: true }).select({ username: 1, firstName: 1, lastName: 1, lastSeen: 1, resgistration: 1, phone: 1, conversations: 1 });
-    if (user)
-        res.status(http_status_codes_1.StatusCodes.OK).json(user);
-    else
-        res.status(http_status_codes_1.StatusCodes.NOT_FOUND).send("user not found");
+    try {
+        const user = yield users_1.default.findOne({ _id: email, isVerified: true }).select({ username: 1, firstName: 1, lastName: 1, lastSeen: 1, resgistration: 1, phone: 1, boi: 1 });
+        if (user)
+            res.status(http_status_codes_1.StatusCodes.OK).json(user);
+        else
+            res.status(http_status_codes_1.StatusCodes.NOT_FOUND).send("user not found");
+    }
+    catch (error) {
+        res.status(http_status_codes_1.StatusCodes.INTERNAL_SERVER_ERROR).send("server error");
+    }
 }));
-userEmiter.on("create user", (args) => __awaiter(void 0, void 0, void 0, function* () {
-    const { req, res } = args[0];
+userEmiter.on("get self", ({ req, res }) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const user = yield users_1.default.findById(req.user).select({ username: 1, firstName: 1, lastName: 1, lastSeen: 1, registration: 1, phone: 1, bio: 1 });
+        res.status(http_status_codes_1.StatusCodes.OK).json(user);
+    }
+    catch (error) {
+        res.status(http_status_codes_1.StatusCodes.INTERNAL_SERVER_ERROR).send("server error");
+    }
+}));
+userEmiter.on("create user", ({ req, res }) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const { error } = createUserSchema.validate(req.body);
         if (error) {
@@ -97,77 +110,71 @@ userEmiter.on("create user", (args) => __awaiter(void 0, void 0, void 0, functio
         res.status(http_status_codes_1.StatusCodes.INTERNAL_SERVER_ERROR).send("server error");
     }
 }));
-userEmiter.on("verify account", (args) => __awaiter(void 0, void 0, void 0, function* () {
-    const { req, res } = args[0];
+userEmiter.on("verify account", ({ req, res }) => __awaiter(void 0, void 0, void 0, function* () {
     if (!req.emailVerified)
         return res.status(http_status_codes_1.StatusCodes.UNAUTHORIZED).send("email not verified");
     try {
         const { error } = verifyAccountSchema.validate(req.body);
         if (error)
             return res.status(http_status_codes_1.StatusCodes.BAD_REQUEST).send(error.message);
-        else {
-            const { username, firstName, lastName, phone } = req.body;
-            const keyPair = yield encryption.generateKeyPair();
-            const publicKey = keyPair.publicKey;
-            const encryptedKeyPair = yield encryption.encryptKeyPair(keyPair);
-            const user = yield users_1.default.findByIdAndUpdate(req.user, {
-                $set: {
-                    isVerified: true,
-                    accountVerified: true,
-                    username,
-                    firstName,
-                    lastName,
-                    phone,
-                    publicKey,
-                    keyPair: encryptedKeyPair
-                }
-            }, { new: true }).select({ accountVerified: 1, emailVerified: 1, isVerified: 1 });
-            if (user) {
-                const token = helpers_1.default.generateUserToken(user.toJSON());
-                res.header("authorization", token).status(http_status_codes_1.StatusCodes.OK).send({ status: "success" });
+        const { username, firstName, lastName, phone, bio } = req.body;
+        const keyPair = yield encryption.generateKeyPair();
+        const publicKey = keyPair.publicKey;
+        const encryptedKeyPair = yield encryption.encryptKeyPair(keyPair);
+        const user = yield users_1.default.findByIdAndUpdate(req.user, {
+            $set: {
+                isVerified: true,
+                accountVerified: true,
+                username,
+                firstName,
+                lastName,
+                phone,
+                publicKey,
+                bio,
+                keyPair: encryptedKeyPair
             }
-            else
-                res.status(http_status_codes_1.StatusCodes.NOT_FOUND).send("user not found");
+        }, { new: true }).select({ accountVerified: 1, emailVerified: 1, isVerified: 1 });
+        if (user) {
+            const token = helpers_1.default.generateUserToken(user.toJSON());
+            res.header("authorization", token).status(http_status_codes_1.StatusCodes.OK).send({ status: "success" });
         }
+        else
+            res.status(http_status_codes_1.StatusCodes.NOT_FOUND).send("user not found");
     }
     catch (error) {
         res.status(http_status_codes_1.StatusCodes.INTERNAL_SERVER_ERROR).send("server error");
     }
 }));
-userEmiter.on("verify email", (args) => __awaiter(void 0, void 0, void 0, function* () {
-    const { req, res } = args[0];
+userEmiter.on("verify email", ({ req, res }) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         if (req.emailVerified)
             return res.status(http_status_codes_1.StatusCodes.BAD_REQUEST).send("email already verified");
         const { error } = verifyEmailSchema.validate(req.body);
         if (error)
             return res.status(http_status_codes_1.StatusCodes.BAD_REQUEST).send(error.message);
-        else {
-            const { otp } = req.body;
-            const otpInDatabase = yield otps_1.default.findById(otp);
-            if (otpInDatabase && otpInDatabase.email == req.user && otpInDatabase.expiry <= Date.now()) {
-                const user = yield users_1.default.findByIdAndUpdate(req.user, {
-                    $set: {
-                        emailVerified: true,
-                    }
-                }, { new: true }).select({ isVerified: 1, accountVerified: 1, emailVerified: 1 });
-                if (user) {
-                    const token = helpers_1.default.generateUserToken(user.toJSON());
-                    res.header("authorization", token).status(http_status_codes_1.StatusCodes.OK).json({ status: "success" });
+        const { otp } = req.body;
+        const otpInDatabase = yield otps_1.default.findById(otp);
+        if (otpInDatabase && otpInDatabase.email == req.user && otpInDatabase.expiry <= Date.now()) {
+            const user = yield users_1.default.findByIdAndUpdate(req.user, {
+                $set: {
+                    emailVerified: true,
                 }
-                else
-                    res.status(http_status_codes_1.StatusCodes.NOT_FOUND).send("user not found");
+            }, { new: true }).select({ isVerified: 1, accountVerified: 1, emailVerified: 1 });
+            if (user) {
+                const token = helpers_1.default.generateUserToken(user.toJSON());
+                res.header("authorization", token).status(http_status_codes_1.StatusCodes.OK).json({ status: "success" });
             }
             else
-                return res.status(http_status_codes_1.StatusCodes.BAD_REQUEST).send("Incorrect code");
+                res.status(http_status_codes_1.StatusCodes.NOT_FOUND).send("user not found");
         }
+        else
+            return res.status(http_status_codes_1.StatusCodes.BAD_REQUEST).send("Incorrect code");
     }
     catch (_a) {
         res.status(http_status_codes_1.StatusCodes.INTERNAL_SERVER_ERROR).send("server error");
     }
 }));
-userEmiter.on("resend otp", (args) => __awaiter(void 0, void 0, void 0, function* () {
-    const { req, res } = args[0];
+userEmiter.on("resend otp", ({ req, res }) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         if (req.emailVerified)
             return res.status(http_status_codes_1.StatusCodes.BAD_REQUEST).send("email already verified");
@@ -184,6 +191,67 @@ userEmiter.on("resend otp", (args) => __awaiter(void 0, void 0, void 0, function
             return res.status(http_status_codes_1.StatusCodes.INTERNAL_SERVER_ERROR).send("server error");
     }
     catch (err) {
-        res.status(http_status_codes_1.StatusCodes.BAD_REQUEST).send("server error ");
+        res.status(http_status_codes_1.StatusCodes.INTERNAL_SERVER_ERROR).send("server error ");
+    }
+}));
+userEmiter.on("get conversations", ({ req, res }) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const response = yield users_1.default.findById(req.user).select({
+            conversations: 1
+        });
+        if (response) {
+            const conversations = lodash_1.default.omit(response.toJSON(), ["_id"]);
+            res.status(http_status_codes_1.StatusCodes.OK).json(conversations);
+        }
+    }
+    catch (error) {
+        res.status(http_status_codes_1.StatusCodes.INTERNAL_SERVER_ERROR).send("server error");
+    }
+}));
+userEmiter.on("add user", ({ req, res }) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const { error } = getUserSchema.validate(req.params);
+        if (error)
+            return res.status(http_status_codes_1.StatusCodes.BAD_REQUEST).send(error.message);
+        const { email } = req.params;
+        const user = yield users_1.default.findById(email);
+        const self = yield users_1.default.findById(req.user);
+        if (user && self) {
+            if (self.contacts.includes(email))
+                return res.status(http_status_codes_1.StatusCodes.BAD_REQUEST).send("user already a contact");
+            yield users_1.default.findByIdAndUpdate(req.user, {
+                $push: { contacts: email }
+            });
+            res.status(http_status_codes_1.StatusCodes.OK).send({ status: "success" });
+        }
+        else
+            return res.status(http_status_codes_1.StatusCodes.NOT_FOUND).send("user not found");
+    }
+    catch (error) {
+        res.status(http_status_codes_1.StatusCodes.INTERNAL_SERVER_ERROR).send("server error");
+    }
+}));
+userEmiter.on("get contacts", ({ req, res }) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const response = yield users_1.default.findById(req.user).select({
+            contacts: 1
+        });
+        const contacts = lodash_1.default.omit(response === null || response === void 0 ? void 0 : response.toJSON(), ["_id"]);
+        res.status(http_status_codes_1.StatusCodes.OK).send(contacts);
+    }
+    catch (error) {
+        res.status(http_status_codes_1.StatusCodes.INTERNAL_SERVER_ERROR).send("server error");
+    }
+}));
+userEmiter.on("update user", ({ req, res }) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const { error } = updateUserSchema.validate(req.body);
+        if (error)
+            return res.status(http_status_codes_1.StatusCodes.BAD_REQUEST).send(error.message);
+        yield users_1.default.findByIdAndUpdate(req.user, req.body);
+        res.status(http_status_codes_1.StatusCodes.OK).json({ status: "success" });
+    }
+    catch (error) {
+        res.status(http_status_codes_1.StatusCodes.INTERNAL_SERVER_ERROR).send("server error");
     }
 }));

@@ -13,6 +13,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 var _a;
 Object.defineProperty(exports, "__esModule", { value: true });
+const message_1 = __importDefault(require("../models/message"));
 const otps_1 = __importDefault(require("../models/otps"));
 class Processes {
 }
@@ -27,9 +28,14 @@ Processes.envChecker = () => {
 };
 Processes.otpProcess = () => __awaiter(void 0, void 0, void 0, function* () {
     console.log("\x1b[33m%s\x1b[0m", "OTP process started ...");
-    yield otps_1.default.deleteMany({ expiry: { $lt: Date.now() } });
     setInterval(() => __awaiter(void 0, void 0, void 0, function* () {
         yield otps_1.default.deleteMany({ expiry: { $lt: Date.now() } });
+    }), 10000);
+});
+Processes.messageProcess = () => __awaiter(void 0, void 0, void 0, function* () {
+    console.log("\x1b[33m%s\x1b[0m", "OTP process started ...");
+    setInterval(() => __awaiter(void 0, void 0, void 0, function* () {
+        yield message_1.default.deleteMany({ expiry: { $lt: Date.now() } });
     }), 10000);
 });
 exports.default = Processes;

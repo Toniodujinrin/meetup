@@ -12,33 +12,28 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-const http_status_codes_1 = require("http-status-codes");
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const users_1 = __importDefault(require("../models/users"));
-const authorization = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
-    let token = req.headers.authorization;
+const authorization = (socket, next) => __awaiter(void 0, void 0, void 0, function* () {
+    let token = socket.handshake.auth.token;
     const key = process.env.KEY;
     if (token && typeof key == "string") {
         try {
             token = token.replace("Bearer", "").trim();
             const payload = jsonwebtoken_1.default.verify(token, key);
             const user = yield users_1.default.findById(payload._id);
-            if (user) {
-                req.user = payload._id;
-                req.isVerified = payload.isVerified;
-                req.emailVerified = payload.emailVerified;
-                req.accountVerified = payload.accountVerified;
+            if (user && user.isVerified) {
+                socket.user = user._id;
                 next();
             }
             else
-                return res.status(http_status_codes_1.StatusCodes.UNAUTHORIZED).send("invalid token");
+                return socket.emit("connection_error", new Error("not authorized"));
         }
         catch (err) {
-            console.log(err);
-            res.status(http_status_codes_1.StatusCodes.UNAUTHORIZED).send("Invalid token");
+            socket.emit("connection_error", new Error("server error"));
         }
     }
     else
-        res.status(http_status_codes_1.StatusCodes.UNAUTHORIZED).send("No authorization token recieved ");
+        socket.emit("connection_error", new Error("invalid token"));
 });
 exports.default = authorization;

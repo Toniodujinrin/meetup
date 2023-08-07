@@ -1,0 +1,145 @@
+"use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const http_status_codes_1 = require("http-status-codes");
+const emiters_1 = __importDefault(require("../lib/emiters"));
+const conversations_1 = __importStar(require("../models/conversations"));
+const encryption_1 = __importDefault(require("../lib/encryption"));
+const users_1 = __importDefault(require("../models/users"));
+const helpers_1 = __importDefault(require("../lib/helpers"));
+const { createConversationSchema, addUserSchema, deleteConversationSchema } = conversations_1.conversationSchemas;
+const { conversationEmiter } = emiters_1.default;
+const encryption = new encryption_1.default();
+conversationEmiter.on("create conversation", ({ req, res }) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const { error } = createConversationSchema.validate(req.body);
+        if (error)
+            return res.status(http_status_codes_1.StatusCodes.BAD_REQUEST).send(error.message);
+        const { users, name } = req.body;
+        const user = yield users_1.default.findById(req.user).select({ contacts: 1 });
+        if (!user)
+            return res.status(http_status_codes_1.StatusCodes.NOT_FOUND).send("user not found");
+        const contacts = user.contacts;
+        if (!helpers_1.default.checkIfSubset(contacts, users) && !(users.length == 1 && users[0] == req.user))
+            return res.status(http_status_codes_1.StatusCodes.BAD_REQUEST).send("all users must me be contacts");
+        let conversation = new conversations_1.default({
+            users: users,
+            name: name
+        });
+        conversation = yield conversation.save();
+        const conversationId = conversation._id;
+        const groupKey = encryption.createGroupKey();
+        const process = users.map((user) => __awaiter(void 0, void 0, void 0, function* () {
+            const usr = yield users_1.default.findById(user).select({ publicKey: 1 });
+            if (usr && usr.publicKey) {
+                const encryptedGroupKey = encryption.encryptGroupKey(usr.publicKey, groupKey);
+                const conversationObject = {
+                    groupKey: encryptedGroupKey,
+                    conversationId
+                };
+                yield usr.updateOne({
+                    $push: { conversations: conversationObject }
+                });
+            }
+        }));
+        yield Promise.all(process);
+        res.status(http_status_codes_1.StatusCodes.OK).send({ status: "success" });
+    }
+    catch (err) {
+        console.log(err);
+        res.status(http_status_codes_1.StatusCodes.INTERNAL_SERVER_ERROR).send("server error");
+    }
+}));
+conversationEmiter.on("add to conversation", ({ req, res }) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const { error } = addUserSchema.validate(req.body);
+        if (error)
+            return res.status(http_status_codes_1.StatusCodes.BAD_REQUEST).send(error.message);
+        const { conversationId, users, groupKey } = req.body;
+        const conversation = yield conversations_1.default.findById(conversationId);
+        if (!conversation)
+            return res.status(http_status_codes_1.StatusCodes.NOT_FOUND).send("conversation not found");
+        if (helpers_1.default.checkIfSubset(conversation.users, users))
+            return res.status(http_status_codes_1.StatusCodes.BAD_REQUEST).send("user already exists in conversation");
+        const _user = yield users_1.default.findById(req.user).select({ contacts: 1 });
+        if (!_user)
+            return res.status(http_status_codes_1.StatusCodes.NOT_FOUND).send("user not found");
+        const contacts = _user.contacts;
+        if (!helpers_1.default.checkIfSubset(contacts, users))
+            return res.status(http_status_codes_1.StatusCodes.BAD_REQUEST).send("all users must be contacts");
+        const process = users.map((user) => __awaiter(void 0, void 0, void 0, function* () {
+            const usr = yield users_1.default.findById(user);
+            if (usr && usr.publicKey) {
+                const encryptedGroupKey = encryption.encryptGroupKey(usr.publicKey, groupKey);
+                const conversationObject = {
+                    groupKey: encryptedGroupKey,
+                    conversationId
+                };
+                yield usr.updateOne({
+                    $push: { conversations: conversationObject }
+                });
+                yield conversation.updateOne({
+                    $push: { users: user }
+                });
+            }
+        }));
+        yield Promise.all(process);
+        res.status(http_status_codes_1.StatusCodes.OK).send({ status: "success" });
+    }
+    catch (error) {
+        console.log(error);
+        res.status(http_status_codes_1.StatusCodes.INTERNAL_SERVER_ERROR).send("server error");
+    }
+}));
+conversationEmiter.on("delete", ({ req, res }) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const { error } = deleteConversationSchema.validate(req.params);
+        if (error)
+            return res.status(http_status_codes_1.StatusCodes.BAD_REQUEST).send(error.message);
+        const conversationId = req.params.conversationId;
+        const conversation = yield conversations_1.default.findById(conversationId);
+        if (!conversation)
+            return res.status(http_status_codes_1.StatusCodes.NOT_FOUND).send("conversation not found");
+        if (!conversation.users.includes(req.user))
+            return res.status(http_status_codes_1.StatusCodes.UNAUTHORIZED).send("you do not belong to this converation");
+        yield conversations_1.default.deleteOne({ _id: conversationId });
+        res.status(http_status_codes_1.StatusCodes.OK).json({ status: "success" });
+    }
+    catch (error) {
+        res.status(http_status_codes_1.StatusCodes.INTERNAL_SERVER_ERROR).send("server error");
+    }
+}));
