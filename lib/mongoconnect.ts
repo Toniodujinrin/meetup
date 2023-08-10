@@ -6,7 +6,7 @@ const connectToDatabase = async ()=>{
         if(process.env.MONGO_URI){
             await mongoose.connect(process.env.MONGO_URI)
             
-            console.log("connected to database")
+            console.log("\x1b[32m%s\x1b[0m","[o] Connected to mongodb ...")
         }
         else console.log("no mongodb uri found")
     }

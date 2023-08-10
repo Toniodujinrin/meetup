@@ -15,7 +15,7 @@ const usersSchema = new mongoose_1.default.Schema({
     lastName: { type: String, trim: true, minLength: 2, maxLength: 50 },
     emailVerified: { default: false, type: Boolean },
     accountVerified: { default: false, type: Boolean },
-    contacts: [String],
+    contacts: [{ type: String, ref: "User" }],
     isVerified: { default: false, type: Boolean },
     lastSeen: { default: Date.now(), type: Number },
     registration: { default: Date.now(), type: Number },
@@ -28,7 +28,8 @@ const usersSchema = new mongoose_1.default.Schema({
         minLength: 2,
         maxLength: 120,
     },
-    conversations: [{ conversationId: String, groupKey: String }],
+    conversations: [{ type: mongoose_1.default.Schema.Types.ObjectId, ref: "Conversation" }],
+    conversationKeys: [{ conversationId: String, groupKey: String }],
     publicKey: { type: String },
     keyPair: { type: String }
 });

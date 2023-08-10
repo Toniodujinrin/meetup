@@ -17,7 +17,7 @@ const connectToDatabase = () => __awaiter(void 0, void 0, void 0, function* () {
     try {
         if (process.env.MONGO_URI) {
             yield mongoose_1.default.connect(process.env.MONGO_URI);
-            console.log("connected to database");
+            console.log("\x1b[32m%s\x1b[0m", "[o] Connected to mongodb ...");
         }
         else
             console.log("no mongodb uri found");

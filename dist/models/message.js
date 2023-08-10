@@ -19,10 +19,7 @@ const messageSchema = new mongoose_1.default.Schema({
     timeStamp: { type: Number, default: Date.now() },
     expiry: { type: Number, default: Date.now() + 86400000 },
     status: { type: String, default: "delivered", enum: ["read", "delivered"] },
-    body: {
-        senderId: String,
-        text: String,
-    }
+    body: String
 });
 messageSchema.post("save", function (doc) {
     return __awaiter(this, void 0, void 0, function* () {

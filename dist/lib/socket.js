@@ -15,6 +15,7 @@ var _a;
 Object.defineProperty(exports, "__esModule", { value: true });
 const users_1 = __importDefault(require("../models/users"));
 const conversations_1 = __importDefault(require("../models/conversations"));
+const message_1 = __importDefault(require("../models/message"));
 class SocketLib {
 }
 _a = SocketLib;
@@ -32,9 +33,14 @@ SocketLib.leaveAllRooms = (socket, io) => {
         io.to(room).emit("online", ids);
     }));
 };
-// static sendMessage = (io,text,conversationId )=>{
-//     //broadcast message then save message to the server 
-// }
+SocketLib.sendMessage = (io, body, conversationId) => __awaiter(void 0, void 0, void 0, function* () {
+    let message = new message_1.default({
+        conversationId,
+        body: body
+    });
+    message = yield message.save();
+    io.to(conversationId).emit("new_message", message);
+});
 SocketLib.updateLastSeen = (email) => __awaiter(void 0, void 0, void 0, function* () {
     users_1.default.findByIdAndUpdate(email, {
         $set: { lastSeen: Date.now() }
@@ -43,7 +49,7 @@ SocketLib.updateLastSeen = (email) => __awaiter(void 0, void 0, void 0, function
 SocketLib.getUserGroupKey = (email, conversationId) => __awaiter(void 0, void 0, void 0, function* () {
     const user = yield users_1.default.findById(email);
     if (user && user.conversations) {
-        const conversation = user.conversations.find(conversation => conversation.conversationId == conversationId);
+        const conversation = user.conversationKeys.find(conversation => conversation.conversationId == conversationId);
         if (!conversation)
             throw new Error("unauthorized user");
         return conversation.groupKey;

@@ -1,8 +1,7 @@
 import { Server, Socket } from "socket.io"
 import authorization from "../middleware/socketAuthentication"
 import SocketLib from "../lib/socket"
-import Conversation from "../models/conversations"
-import Message from "../models/message"
+
 
 interface SocketInterface extends Socket{
    user?:string
@@ -18,34 +17,33 @@ const socketHandler = (io:Server)=>{
         
         socket.on("join",async ({conversationId})=>{
             try {
-                const groupKey = SocketLib.getUserGroupKey(socket.user,conversationId)
+                const groupKey = await SocketLib.getUserGroupKey(socket.user,conversationId)
                 socket.emit("groupKey",groupKey)
                 socket.join(conversationId)
                 const previousMessages = await SocketLib.getPreviousMessages(conversationId)
                 socket.emit("previousMessages",previousMessages)
-                const onlineUsers = SocketLib.getAllSockets(io, conversationId)
+                const onlineUsers = await SocketLib.getAllSockets(io, conversationId)
                 socket.emit("onlineUsers",onlineUsers)
             } catch (error) {
-                socket.emit("connect_error",error)
+                console.log(error)
+                socket.emit("conn_error",error)
             } 
         })
 
-       socket.on("message",async ({text,conversationId})=>{
-            let message =  new Message({
-               conversationId,
-               body:{
-                 text,
-                 senderId:socket.user
-               }
-            })
-            message = await message.save()
-            io.to(conversationId).emit("message",message)
+       socket.on("message",async ({body,conversationId})=>{
+        try {
+            await SocketLib.sendMessage(io,body,conversationId)
+        } catch (error) {
+            socket.emit("conn_error",error)
+        }
         })
         socket.on("disconnect",async()=>{
-            
+            try {
                 SocketLib.leaveAllRooms(socket, io)
-                SocketLib.updateLastSeen(socket.user)
-           
+                await SocketLib.updateLastSeen(socket.user)
+            } catch (error) {
+                socket.emit("conn_error",error)
+            }
           
         })
         

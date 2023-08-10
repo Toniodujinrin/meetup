@@ -27,13 +27,13 @@ const authorization = (socket, next) => __awaiter(void 0, void 0, void 0, functi
                 next();
             }
             else
-                return socket.emit("connection_error", new Error("not authorized"));
+                return socket.emit("conn_error", new Error("not authorized"));
         }
         catch (err) {
-            socket.emit("connection_error", new Error("server error"));
+            socket.emit("conn_error", new Error("server error"));
         }
     }
     else
-        socket.emit("connection_error", new Error("invalid token"));
+        socket.emit("conn_error", new Error("invalid token"));
 });
 exports.default = authorization;

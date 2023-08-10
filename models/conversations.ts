@@ -2,10 +2,10 @@ import Joi from "joi";
 import mongoose from "mongoose";
 import Message from "./message";
 import User from "./users";
-import { filter } from "lodash";
+
 
 interface ConversationInterface extends mongoose.Document{
-   _id:string 
+  
    users:string[]
    name:string
    created:number 
@@ -39,24 +39,28 @@ const conversationSchemas = {
    })
 }
 
-conversationSchema.pre<ConversationInterface>("deleteOne",async function(next){
+conversationSchema.post<ConversationInterface>("findOneAndDelete",async function(doc:ConversationInterface){
+
    try{
-      Message.deleteMany({conversationId:this._id})
-      this.users.map(async(user) => {
+      Message.deleteMany({conversationId:doc._id})
+      const proc = doc.users.map(async(user) => {
          const _user = await  User.findById(user)
          if(_user){
-            const filteredConversations = _user.conversations.filter(conversation => conversation.conversationId !== this._id)
+            const filteredConversations = _user.conversations.filter((conversation:any) => !doc._id.equals(conversation))
+            const filteredConversationKeys = _user.conversationKeys.filter(conversation=> !doc._id.equals(conversation.conversationId))
             _user.set({
-               conversations:filteredConversations
+               conversations:filteredConversations,
+               conversationKeys:filteredConversationKeys
             })
+           
             await _user.save()
          }
       });
-      next()
+      await Promise.all(proc)
+
    }
    catch (error){
      console.log(error)
-     next()
    }
 })
 

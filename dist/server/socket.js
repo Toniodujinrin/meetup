@@ -14,39 +14,41 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const socketAuthentication_1 = __importDefault(require("../middleware/socketAuthentication"));
 const socket_1 = __importDefault(require("../lib/socket"));
-const message_1 = __importDefault(require("../models/message"));
 const socketHandler = (io) => {
     io.use(socketAuthentication_1.default);
     io.on("connection", (socket) => {
         console.log("user connected");
         socket.on("join", ({ conversationId }) => __awaiter(void 0, void 0, void 0, function* () {
             try {
-                const groupKey = socket_1.default.getUserGroupKey(socket.user, conversationId);
+                const groupKey = yield socket_1.default.getUserGroupKey(socket.user, conversationId);
                 socket.emit("groupKey", groupKey);
                 socket.join(conversationId);
                 const previousMessages = yield socket_1.default.getPreviousMessages(conversationId);
                 socket.emit("previousMessages", previousMessages);
-                const onlineUsers = socket_1.default.getAllSockets(io, conversationId);
+                const onlineUsers = yield socket_1.default.getAllSockets(io, conversationId);
                 socket.emit("onlineUsers", onlineUsers);
             }
             catch (error) {
-                socket.emit("connect_error", error);
+                console.log(error);
+                socket.emit("conn_error", error);
             }
         }));
-        socket.on("message", ({ text, conversationId }) => __awaiter(void 0, void 0, void 0, function* () {
-            let message = new message_1.default({
-                conversationId,
-                body: {
-                    text,
-                    senderId: socket.user
-                }
-            });
-            message = yield message.save();
-            io.to(conversationId).emit("message", message);
+        socket.on("message", ({ body, conversationId }) => __awaiter(void 0, void 0, void 0, function* () {
+            try {
+                yield socket_1.default.sendMessage(io, body, conversationId);
+            }
+            catch (error) {
+                socket.emit("conn_error", error);
+            }
         }));
         socket.on("disconnect", () => __awaiter(void 0, void 0, void 0, function* () {
-            socket_1.default.leaveAllRooms(socket, io);
-            socket_1.default.updateLastSeen(socket.user);
+            try {
+                socket_1.default.leaveAllRooms(socket, io);
+                yield socket_1.default.updateLastSeen(socket.user);
+            }
+            catch (error) {
+                socket.emit("conn_error", error);
+            }
         }));
     });
 };

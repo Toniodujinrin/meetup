@@ -67,12 +67,12 @@ conversationEmiter.on("create conversation", ({ req, res }) => __awaiter(void 0,
             const usr = yield users_1.default.findById(user).select({ publicKey: 1 });
             if (usr && usr.publicKey) {
                 const encryptedGroupKey = encryption.encryptGroupKey(usr.publicKey, groupKey);
-                const conversationObject = {
+                const conversationKeyObject = {
                     groupKey: encryptedGroupKey,
                     conversationId
                 };
                 yield usr.updateOne({
-                    $push: { conversations: conversationObject }
+                    $push: { conversationKeys: conversationKeyObject, conversations: conversationId }
                 });
             }
         }));
@@ -105,12 +105,12 @@ conversationEmiter.on("add to conversation", ({ req, res }) => __awaiter(void 0,
             const usr = yield users_1.default.findById(user);
             if (usr && usr.publicKey) {
                 const encryptedGroupKey = encryption.encryptGroupKey(usr.publicKey, groupKey);
-                const conversationObject = {
+                const conversationKeyObject = {
                     groupKey: encryptedGroupKey,
                     conversationId
                 };
                 yield usr.updateOne({
-                    $push: { conversations: conversationObject }
+                    $push: { conversationKeys: conversationKeyObject, conversations: conversationId }
                 });
                 yield conversation.updateOne({
                     $push: { users: user }
@@ -136,7 +136,7 @@ conversationEmiter.on("delete", ({ req, res }) => __awaiter(void 0, void 0, void
             return res.status(http_status_codes_1.StatusCodes.NOT_FOUND).send("conversation not found");
         if (!conversation.users.includes(req.user))
             return res.status(http_status_codes_1.StatusCodes.UNAUTHORIZED).send("you do not belong to this converation");
-        yield conversations_1.default.deleteOne({ _id: conversationId });
+        yield conversations_1.default.findOneAndDelete({ _id: conversationId });
         res.status(http_status_codes_1.StatusCodes.OK).json({ status: "success" });
     }
     catch (error) {

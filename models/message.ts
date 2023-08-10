@@ -14,10 +14,7 @@ const messageSchema = new mongoose.Schema({
     timeStamp:{type:Number, default:Date.now() }, 
     expiry:{type:Number, default:Date.now()+86400000},
     status:{type:String, default:"delivered",  enum:["read","delivered"]},
-    body:{
-        senderId:String, 
-        text:String,
-    }
+    body:String
 })
 
 

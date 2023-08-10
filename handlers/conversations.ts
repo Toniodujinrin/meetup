@@ -28,12 +28,12 @@ conversationEmiter.on("create conversation", async ({req, res})=>{
             const usr = await User.findById(user).select({publicKey:1})
             if(usr && usr.publicKey){
                 const encryptedGroupKey =  encryption.encryptGroupKey(usr.publicKey, groupKey)
-                const conversationObject = {
+                const conversationKeyObject = {
                 groupKey:encryptedGroupKey,
                 conversationId
                 }
                 await usr.updateOne({
-                $push:{conversations:conversationObject}
+                $push:{conversationKeys:conversationKeyObject, conversations:conversationId}
                 }
                 )
             }
@@ -65,12 +65,12 @@ conversationEmiter.on("add to conversation", async({req, res})=>{
             const usr = await User.findById(user)
             if(usr && usr.publicKey){
                 const encryptedGroupKey = encryption.encryptGroupKey(usr.publicKey,groupKey) 
-                const conversationObject = {
+                const conversationKeyObject = {
                     groupKey:encryptedGroupKey, 
                     conversationId
                 }
                 await usr.updateOne({
-                    $push:{conversations:conversationObject}
+                    $push:{conversationKeys:conversationKeyObject,conversations:conversationId}
                 })
                 await conversation.updateOne({
                     $push:{users:user}
@@ -95,7 +95,7 @@ conversationEmiter.on("delete",async ({req,res})=>{
         const conversation = await Conversation.findById(conversationId)
         if(!conversation) return res.status(StatusCodes.NOT_FOUND).send("conversation not found")
         if(!conversation.users.includes(req.user)) return res.status(StatusCodes.UNAUTHORIZED).send("you do not belong to this converation")
-        await Conversation.deleteOne({_id:conversationId})
+        await Conversation.findOneAndDelete({_id:conversationId})
         res.status(StatusCodes.OK).json({status:"success"})
     }
     catch (error){

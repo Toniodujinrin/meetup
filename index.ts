@@ -11,8 +11,8 @@ import socketHandler from "./server/socket"
 require("dotenv").config()
 Processes.envChecker()
 conncectToDatabase()
-//Processes.otpProcess()
-// Processes.messageProcess()
+// Processes.otpProcess()
+Processes.messageProcess()
 
 const app = express()
 startup(app)
@@ -22,7 +22,7 @@ const server = http.createServer(app)
 
 const io = new Server(server,{
   cors:{
-    origin:`http://localhost:3001`
+    origin:`http://localhost:3000`
   }
 })
 

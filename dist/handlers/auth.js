@@ -54,23 +54,19 @@ authenticationEmiter.on("authenticate", (args) => __awaiter(void 0, void 0, void
         const user = yield users_1.default.findById(email).select({
             isVerified: 1, emailVerified: 1, accountVerified: 1, password: 1, keyPair: 1
         });
-        if (user) {
-            const hashedPassword = helpers_1.default.passwordHasher(password);
-            if (hashedPassword == user.password) {
-                const _user = lodash_1.default.omit(user.toJSON(), ["password"]);
-                if (user.keyPair) {
-                    const decryptedKeyPair = yield encryption.decryptKeyPair(user.keyPair);
-                    _user.keyPair = decryptedKeyPair;
-                }
-                const token = helpers_1.default.generateUserToken(_user);
-                res.header("authotization", token);
-                return res.status(http_status_codes_1.StatusCodes.OK).json({ status: "success" });
-            }
-            else
-                res.status(http_status_codes_1.StatusCodes.BAD_REQUEST).send("Invalid username or password");
+        if (!user)
+            return res.status(http_status_codes_1.StatusCodes.BAD_REQUEST).send("Invalid username or password");
+        const hashedPassword = helpers_1.default.passwordHasher(password);
+        if (hashedPassword !== user.password)
+            return res.status(http_status_codes_1.StatusCodes.BAD_REQUEST).send("Invalid username or password");
+        const _user = lodash_1.default.omit(user.toJSON(), ["password"]);
+        if (user.keyPair) {
+            const decryptedKeyPair = yield encryption.decryptKeyPair(user.keyPair);
+            _user.keyPair = decryptedKeyPair;
         }
-        else
-            res.status(http_status_codes_1.StatusCodes.BAD_REQUEST).send("Invalid username or password");
+        const token = helpers_1.default.generateUserToken(_user);
+        res.header("authorization", token);
+        return res.status(http_status_codes_1.StatusCodes.OK).json({ status: "success" });
     }
     catch (err) {
         console.log(err);

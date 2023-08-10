@@ -42,25 +42,26 @@ const conversationSchemas = {
     })
 };
 exports.conversationSchemas = conversationSchemas;
-conversationSchema.pre("deleteOne", function (next) {
+conversationSchema.post("findOneAndDelete", function (doc) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
-            message_1.default.deleteMany({ conversationId: this._id });
-            this.users.map((user) => __awaiter(this, void 0, void 0, function* () {
+            message_1.default.deleteMany({ conversationId: doc._id });
+            const proc = doc.users.map((user) => __awaiter(this, void 0, void 0, function* () {
                 const _user = yield users_1.default.findById(user);
                 if (_user) {
-                    const filteredConversations = _user.conversations.filter(conversation => conversation.conversationId !== this._id);
+                    const filteredConversations = _user.conversations.filter((conversation) => !doc._id.equals(conversation));
+                    const filteredConversationKeys = _user.conversationKeys.filter(conversation => !doc._id.equals(conversation.conversationId));
                     _user.set({
-                        conversations: filteredConversations
+                        conversations: filteredConversations,
+                        conversationKeys: filteredConversationKeys
                     });
                     yield _user.save();
                 }
             }));
-            next();
+            yield Promise.all(proc);
         }
         catch (error) {
             console.log(error);
-            next();
         }
     });
 });

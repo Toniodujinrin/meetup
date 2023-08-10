@@ -80,55 +80,49 @@ userEmiter.on("verify account", async ({req,res})=>{
     try {
         const {error} = verifyAccountSchema.validate(req.body)
         if(error) return res.status(StatusCodes.BAD_REQUEST).send(error.message)
-            const {username, firstName, lastName, phone, bio} = req.body
-            const keyPair = await encryption.generateKeyPair()
-            const publicKey = keyPair.publicKey
-            const encryptedKeyPair = await  encryption.encryptKeyPair(keyPair)
-            const user = await User.findByIdAndUpdate(req.user,{
-                $set :{
-                   isVerified:true,
-                   accountVerified:true,
-                   username,
-                   firstName,
-                   lastName,
-                   phone,
-                   publicKey,
-                   bio, 
-                   keyPair:encryptedKeyPair
-                }
-            }, {new:true}).select({accountVerified:1 , emailVerified:1, isVerified:1})
-            if(user){
-                const token = Helpers.generateUserToken(user.toJSON())
-                res.header("authorization",token).status(StatusCodes.OK).send({status:"success"})
+        const {username, firstName, lastName, phone, bio} = req.body
+        const keyPair = await encryption.generateKeyPair()
+        const publicKey = keyPair.publicKey
+        const encryptedKeyPair = await  encryption.encryptKeyPair(keyPair)
+        const user = await User.findByIdAndUpdate(req.user,{
+            $set :{
+                isVerified:true,
+                accountVerified:true,
+                username,
+                firstName,
+                lastName,
+                phone,
+                publicKey,
+                bio, 
+                keyPair:encryptedKeyPair
             }
-            else res.status(StatusCodes.NOT_FOUND).send("user not found")
-        
+        }, {new:true}).select({accountVerified:1 , emailVerified:1, isVerified:1})
+        if(!user) return res.status(StatusCodes.NOT_FOUND).send("user not found")
+        const token = Helpers.generateUserToken(user.toJSON())
+        res.header("authorization",token).status(StatusCodes.OK).send({status:"success"})
     } catch (error) {
         res.status(StatusCodes.INTERNAL_SERVER_ERROR).send("server error")
     }
 })
 
 userEmiter.on("verify email", async({req, res})=>{
-   try{
-   if (req.emailVerified) return res.status(StatusCodes.BAD_REQUEST).send("email already verified")
-   const {error}= verifyEmailSchema.validate(req.body)
-   if(error) return res.status(StatusCodes.BAD_REQUEST).send(error.message)
-    const {otp}= req.body
-    const otpInDatabase = await OTP.findById(otp)
-    if(otpInDatabase && otpInDatabase.email == req.user && otpInDatabase.expiry <= Date.now()){
+    try{
+        if (req.emailVerified) return res.status(StatusCodes.BAD_REQUEST).send("email already verified")
+        const {error}= verifyEmailSchema.validate(req.body)
+        if(error) return res.status(StatusCodes.BAD_REQUEST).send(error.message)
+        const {otp}= req.body
+        const otpInDatabase = await OTP.findById(otp)
+        if(otpInDatabase && otpInDatabase.email == req.user && otpInDatabase.expiry <= Date.now()){
         const user = await User.findByIdAndUpdate(req.user,{
             $set:{
                 emailVerified:true, 
             }
         },{new:true}).select({isVerified:1 , accountVerified:1, emailVerified:1})
-        if(user){
-            const token = Helpers.generateUserToken(user.toJSON())
-            res.header("authorization",token).status(StatusCodes.OK).json({status:"success"})
+        if(!user) return res.status(StatusCodes.NOT_FOUND).send("user not found")
+        const token = Helpers.generateUserToken(user.toJSON())
+        res.header("authorization",token).status(StatusCodes.OK).json({status:"success"})
         }
-        else res.status(StatusCodes.NOT_FOUND).send("user not found")
-    }
-    else return res.status(StatusCodes.BAD_REQUEST).send("Incorrect code")
-    
+        else return res.status(StatusCodes.BAD_REQUEST).send("Incorrect code")
     }
     catch{
         res.status(StatusCodes.INTERNAL_SERVER_ERROR).send("server error")
@@ -158,12 +152,9 @@ userEmiter.on("resend otp", async({req, res} )=>{
 
 userEmiter.on("get conversations", async({req,res})=>{
     try{
-        const response = await User.findById(req.user).select({
-           conversations:1 
-        })
+        const response = await User.findById(req.user).populate("conversations")
         if(response){
-            const conversations = _.omit(response.toJSON(), ["_id"])
-            res.status(StatusCodes.OK).json(conversations)
+            res.status(StatusCodes.OK).json(response.conversations)
         }
     }
     catch (error){
@@ -198,7 +189,7 @@ userEmiter.on("get contacts", async({req, res})=>{
             contacts:1
         })
         const contacts = _.omit(response?.toJSON(),["_id"])
-        res.status(StatusCodes.OK).send(contacts)
+        res.status(StatusCodes.OK).json(contacts)
     } catch (error) {
         res.status(StatusCodes.INTERNAL_SERVER_ERROR).send("server error")
     }
@@ -215,6 +206,10 @@ userEmiter.on("update user", async ({req,res})=>{
         res.status(StatusCodes.INTERNAL_SERVER_ERROR).send("server error")
     }
 })
+
+
+
+
 
 
 

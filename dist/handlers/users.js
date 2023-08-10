@@ -134,12 +134,10 @@ userEmiter.on("verify account", ({ req, res }) => __awaiter(void 0, void 0, void
                 keyPair: encryptedKeyPair
             }
         }, { new: true }).select({ accountVerified: 1, emailVerified: 1, isVerified: 1 });
-        if (user) {
-            const token = helpers_1.default.generateUserToken(user.toJSON());
-            res.header("authorization", token).status(http_status_codes_1.StatusCodes.OK).send({ status: "success" });
-        }
-        else
-            res.status(http_status_codes_1.StatusCodes.NOT_FOUND).send("user not found");
+        if (!user)
+            return res.status(http_status_codes_1.StatusCodes.NOT_FOUND).send("user not found");
+        const token = helpers_1.default.generateUserToken(user.toJSON());
+        res.header("authorization", token).status(http_status_codes_1.StatusCodes.OK).send({ status: "success" });
     }
     catch (error) {
         res.status(http_status_codes_1.StatusCodes.INTERNAL_SERVER_ERROR).send("server error");
@@ -160,12 +158,10 @@ userEmiter.on("verify email", ({ req, res }) => __awaiter(void 0, void 0, void 0
                     emailVerified: true,
                 }
             }, { new: true }).select({ isVerified: 1, accountVerified: 1, emailVerified: 1 });
-            if (user) {
-                const token = helpers_1.default.generateUserToken(user.toJSON());
-                res.header("authorization", token).status(http_status_codes_1.StatusCodes.OK).json({ status: "success" });
-            }
-            else
-                res.status(http_status_codes_1.StatusCodes.NOT_FOUND).send("user not found");
+            if (!user)
+                return res.status(http_status_codes_1.StatusCodes.NOT_FOUND).send("user not found");
+            const token = helpers_1.default.generateUserToken(user.toJSON());
+            res.header("authorization", token).status(http_status_codes_1.StatusCodes.OK).json({ status: "success" });
         }
         else
             return res.status(http_status_codes_1.StatusCodes.BAD_REQUEST).send("Incorrect code");
@@ -196,12 +192,9 @@ userEmiter.on("resend otp", ({ req, res }) => __awaiter(void 0, void 0, void 0, 
 }));
 userEmiter.on("get conversations", ({ req, res }) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const response = yield users_1.default.findById(req.user).select({
-            conversations: 1
-        });
+        const response = yield users_1.default.findById(req.user).populate("conversations");
         if (response) {
-            const conversations = lodash_1.default.omit(response.toJSON(), ["_id"]);
-            res.status(http_status_codes_1.StatusCodes.OK).json(conversations);
+            res.status(http_status_codes_1.StatusCodes.OK).json(response.conversations);
         }
     }
     catch (error) {
@@ -237,7 +230,7 @@ userEmiter.on("get contacts", ({ req, res }) => __awaiter(void 0, void 0, void 0
             contacts: 1
         });
         const contacts = lodash_1.default.omit(response === null || response === void 0 ? void 0 : response.toJSON(), ["_id"]);
-        res.status(http_status_codes_1.StatusCodes.OK).send(contacts);
+        res.status(http_status_codes_1.StatusCodes.OK).json(contacts);
     }
     catch (error) {
         res.status(http_status_codes_1.StatusCodes.INTERNAL_SERVER_ERROR).send("server error");

@@ -19,21 +19,23 @@ class Processes {
 }
 _a = Processes;
 Processes.envChecker = () => {
-    if (process.env.PORT && process.env.MONGO_URI && process.env.KEY, process.env.EMAIL_SERVER, process.env.HASHING_SECRET)
-        return;
+    console.log("\x1b[33m%s\x1b[0m", "[+] Checking environment variables ...");
+    if (process.env.PORT && process.env.MONGO_URI && process.env.KEY, process.env.EMAIL_SERVER, process.env.HASHING_SECRET) {
+        console.log("\x1b[32m%s\x1b[0m", "[o] All environment variables available ...");
+    }
     else {
-        console.log("\x1b[31m%s\x1b[0m", "Error: missing environmental properties, exiting ...");
+        console.log("\x1b[31m%s\x1b[0m", "[x] Error: missing environmental properties, exiting ...");
         process.exit(1);
     }
 };
 Processes.otpProcess = () => __awaiter(void 0, void 0, void 0, function* () {
-    console.log("\x1b[33m%s\x1b[0m", "OTP process started ...");
+    console.log("\x1b[33m%s\x1b[0m", "[+] OTP process started ...");
     setInterval(() => __awaiter(void 0, void 0, void 0, function* () {
         yield otps_1.default.deleteMany({ expiry: { $lt: Date.now() } });
     }), 10000);
 });
 Processes.messageProcess = () => __awaiter(void 0, void 0, void 0, function* () {
-    console.log("\x1b[33m%s\x1b[0m", "OTP process started ...");
+    console.log("\x1b[33m%s\x1b[0m", "[+] Message process started ...");
     setInterval(() => __awaiter(void 0, void 0, void 0, function* () {
         yield message_1.default.deleteMany({ expiry: { $lt: Date.now() } });
     }), 10000);

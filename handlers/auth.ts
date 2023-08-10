@@ -19,25 +19,20 @@ authenticationEmiter.on("authenticate", async (args)=>{
     const  user = await User.findById(email).select({
         isVerified:1, emailVerified:1, accountVerified:1, password:1, keyPair:1 
     })
-    if(user){
-        const hashedPassword = Helpers.passwordHasher(password)
-        if(hashedPassword == user.password){
-            const _user = lodash.omit(user.toJSON(), ["password"])
-            if(user.keyPair){
-               const decryptedKeyPair = await encryption.decryptKeyPair(user.keyPair) 
-               _user.keyPair = decryptedKeyPair
-            }
-            const token = Helpers.generateUserToken(_user)
-            res.header("authotization",token)
-            return res.status(StatusCodes.OK).json({status:"success"})
-            
-        }
-        else res.status(StatusCodes.BAD_REQUEST).send("Invalid username or password")
+    if(!user) return res.status(StatusCodes.BAD_REQUEST).send("Invalid username or password")
+    const hashedPassword = Helpers.passwordHasher(password)
+    if(hashedPassword !== user.password) return res.status(StatusCodes.BAD_REQUEST).send("Invalid username or password")
+    const _user = lodash.omit(user.toJSON(), ["password"])
+    if(user.keyPair){
+        const decryptedKeyPair = await encryption.decryptKeyPair(user.keyPair) 
+        _user.keyPair = decryptedKeyPair
     }
-    else res.status(StatusCodes.BAD_REQUEST).send("Invalid username or password")
-   }
-   catch(err){
-    console.log(err)
-    res.status(StatusCodes.INTERNAL_SERVER_ERROR).send("server error")
-   }
+    const token = Helpers.generateUserToken(_user)
+    res.header("authorization",token)
+    return res.status(StatusCodes.OK).json({status:"success"})
+    }
+    catch(err){
+        console.log(err)
+        res.status(StatusCodes.INTERNAL_SERVER_ERROR).send("server error")
+    } 
 })

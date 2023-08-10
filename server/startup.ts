@@ -7,7 +7,9 @@ import cors from "cors"
 
 const startup = (app:Express)=>{
     app.use(express.static("public"))
-    app.use(cors())
+    app.use(cors({
+        exposedHeaders:["authorization"]
+    }))
     app.use(express.json())
     app.use("/api/users",users)
     app.use("/api/auth", auth)

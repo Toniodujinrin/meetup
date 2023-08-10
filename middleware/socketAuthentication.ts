@@ -16,13 +16,14 @@ const authorization = async (socket:any,next:(err?: ExtendedError | undefined) =
             socket.user = user._id
             next()
         }
-        else return socket.emit("connection_error",new Error("not authorized"))
+        else return socket.emit("conn_error",new Error("not authorized"))
       }
       catch(err){
-        socket.emit("connection_error",new Error("server error"))
+       
+        socket.emit("conn_error",new Error("server error"))
       }
     }
-    else  socket.emit("connection_error",new Error("invalid token"))
+    else  socket.emit("conn_error",new Error("invalid token"))
 }
 
 export default authorization

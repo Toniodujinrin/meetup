@@ -1,11 +1,10 @@
 import { Socket, Server } from "socket.io"
 import User from "../models/users"
 import Conversation from "../models/conversations"
-import { emit } from "process"
+import Message from "../models/message"
 import _ from "lodash"
 
 class SocketLib{
-
     static getAllSockets = async(io:Server , room:string)=>{
         const clients = await io.in(room).fetchSockets()
         const ids = clients.map((client:any) =>{return client.user})
@@ -22,9 +21,14 @@ class SocketLib{
         })
     }
 
-    // static sendMessage = (io,text,conversationId )=>{
-    //     //broadcast message then save message to the server 
-    // }
+    static sendMessage = async (io:Server,body:string,conversationId:string )=>{
+        let message =  new Message({
+            conversationId,
+            body:body
+         })
+         message = await message.save()
+         io.to(conversationId).emit("new_message",message)
+    }
 
     static updateLastSeen = async(email:string|undefined)=>{
         User.findByIdAndUpdate(email,{
@@ -35,7 +39,7 @@ class SocketLib{
     static getUserGroupKey = async (email:string|undefined,conversationId:string)=>{
         const user = await User.findById(email)
         if(user && user.conversations){
-           const conversation = user.conversations.find(conversation => conversation.conversationId == conversationId)
+           const conversation = user.conversationKeys.find(conversation => conversation.conversationId == conversationId)
            if(!conversation) throw new Error("unauthorized user")
            return conversation.groupKey
         }
@@ -46,10 +50,6 @@ class SocketLib{
         let previousMessages = await Conversation.findById(conversationId).populate("messages").select({messages:1})
         if(previousMessages) return previousMessages.messages 
     }
-
-
-
-   
 }
 
 export default SocketLib
