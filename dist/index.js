@@ -20,7 +20,7 @@ const app = (0, express_1.default)();
 const server = http_1.default.createServer(app);
 const io = new socket_io_1.Server(server, {
     cors: {
-        origin: `http://localhost:3000`
+        origin: `*`
     }
 });
 (0, socket_1.default)(io);
