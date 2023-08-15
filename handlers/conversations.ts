@@ -21,6 +21,8 @@ conversationEmiter.on("create conversation", async ({req, res}:ReqResPair)=>{
         if(users.length >1 && type == "single") return res.status(StatusCodes.BAD_REQUEST).send("single conversations can only have 2 users")
         if(!Helpers.checkIfSubset(req.user.contacts, users)) return res.status(StatusCodes.BAD_REQUEST).send("all users must me be contacts") 
         users.push(req.userId)
+        const conversationExists = await Conversation.find({users:{$all:users, $size:users.length}})
+        if(conversationExists) return res.status(StatusCodes.BAD_REQUEST).send("conversation between users already exists")
         let conversation = new Conversation({
             users,
             name,

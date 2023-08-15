@@ -56,6 +56,9 @@ conversationEmiter.on("create conversation", ({ req, res }) => __awaiter(void 0,
         if (!helpers_1.default.checkIfSubset(req.user.contacts, users))
             return res.status(http_status_codes_1.StatusCodes.BAD_REQUEST).send("all users must me be contacts");
         users.push(req.userId);
+        const conversationExists = yield conversations_1.default.find({ users: { $all: users, $size: users.length } });
+        if (conversationExists)
+            return res.status(http_status_codes_1.StatusCodes.BAD_REQUEST).send("conversation between users already exists");
         let conversation = new conversations_1.default({
             users,
             name,
