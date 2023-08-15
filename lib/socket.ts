@@ -4,34 +4,67 @@ import Conversation from "../models/conversations"
 import Message from "../models/message"
 import _ from "lodash"
 
+
 class SocketLib{
-    static getAllSockets = async(io:Server , room:string)=>{
+    static getAllSocketsInRoom = async(io:Server , room:string)=>{
         const clients = await io.in(room).fetchSockets()
         const ids = clients.map((client:any) =>{return client.user})
         return ids
     }
     
-    static leaveAllRooms = (socket:Socket, io:Server)=>{
-        const rooms = Object.keys(socket.rooms)
-        const roomToLeave = rooms.filter(room => room!== socket.id && room !== undefined)
-        roomToLeave.forEach(async (room) =>{
-            socket.leave(room)
-            const ids = await this.getAllSockets(io,room)
-            io.to(room).emit("online",ids)
-        })
+    static leaveAllRooms = async (socket:any, io:Server)=>{
+        for  (let room of socket.rooms){
+            if(room !== socket.id){
+                let  ids = await this.getAllSocketsInRoom(io,room)
+                ids = ids.filter(id => id !== socket.user)
+                io.to(room).emit("onlineUsers",ids)
+            }
+        }
+        
     }
 
-    static sendMessage = async (io:Server,body:string,conversationId:string )=>{
+    static leaveRoom = async(socket:Socket, io:Server, conversationId:string)=>{
+       await socket.leave(conversationId)
+       const ids = await this.getAllSocketsInRoom(io,conversationId)
+       io.to(conversationId).emit("onlineUsers",ids)
+    }
+
+
+    static getAllSockets = async (io:Server)=>{
+        const client = await io.fetchSockets()
+        const ids = client.map((client:any)=> {return client.user})
+        return ids
+    }
+    
+    //room for optimization
+    static getAllOnlineContacts = async (userId:string|undefined, io:Server)=>{
+        const user = await User.findById(userId)
+        const onlineContacts = []
+        if(user){
+            const contacts = user.contacts
+            const onlineUsers = await this.getAllSockets(io)
+            for(let contact of contacts){
+                if(onlineUsers.includes(contact)){
+                    onlineContacts.push(contact)
+                }
+            }
+        }
+        return onlineContacts
+    }
+
+    static sendMessage = async (io:Server,body:string,conversationId:string,senderId:string|undefined  )=>{
         let message =  new Message({
             conversationId,
-            body:body
+            body,
+            senderId
          })
-         message = await message.save()
-         io.to(conversationId).emit("new_message",message)
+          message = await message.save()
+          const msg = await Message.findById(message._id).populate({path:"senderId", select:"_id username"})
+           io.to(conversationId).emit("new_message",msg)
     }
 
     static updateLastSeen = async(email:string|undefined)=>{
-        User.findByIdAndUpdate(email,{
+        await User.findByIdAndUpdate(email,{
             $set:{lastSeen:Date.now()}
         })
     }
@@ -47,7 +80,7 @@ class SocketLib{
     }
 
     static getPreviousMessages = async (conversationId:string|undefined)=>{
-        let previousMessages = await Conversation.findById(conversationId).populate("messages").select({messages:1})
+        let previousMessages = await Conversation.findById(conversationId).populate({path:"messages", populate:{path:"senderId",select:"_id username"}}).select({messages:1})
         if(previousMessages) return previousMessages.messages 
     }
 }

@@ -18,19 +18,22 @@ const mongoose_1 = __importDefault(require("mongoose"));
 const message_1 = __importDefault(require("./message"));
 const users_1 = __importDefault(require("./users"));
 const conversationSchema = new mongoose_1.default.Schema({
-    users: { type: [String], required: true },
-    name: { type: String, required: true },
+    users: [{ type: String, ref: "User" }],
+    type: { type: String, enum: ["group", "single"] },
+    name: { type: String },
     created: { default: Date.now(), type: Number },
     messages: [{ type: mongoose_1.default.Schema.Types.ObjectId, ref: "Message" }],
     conversationPic: {
         url: { type: String },
         publicId: { type: String }
-    }
+    },
+    lastSeen: { type: Number }
 });
 const conversationSchemas = {
     createConversationSchema: joi_1.default.object({
+        type: joi_1.default.string().required(),
         users: joi_1.default.array().min(1).required(),
-        name: joi_1.default.string().required()
+        name: joi_1.default.string()
     }),
     addUserSchema: joi_1.default.object({
         conversationId: joi_1.default.string().required(),

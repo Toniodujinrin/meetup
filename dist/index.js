@@ -25,5 +25,5 @@ const io = new socket_io_1.Server(server, {
 });
 (0, socket_1.default)(io);
 server.listen(process.env.PORT, () => {
-    console.log(`server listening on port ${process.env.PORT}`);
+    console.log("\x1b[32m%s\x1b[0m", `[o] server listening on port ${process.env.PORT}`);
 });

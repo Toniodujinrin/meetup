@@ -4,10 +4,13 @@ import OTP from "../models/otps";
 import Encryption from "../lib/encryption";
 import { StatusCodes } from "http-status-codes";
 import Helpers from "../lib/helpers"
+import {ReqResPair } from "../lib/types";
 import _ from "lodash"
-const {userEmiter }= emiter
+
+
+const {userEmiter}= emiter
 const encryption = new Encryption()
-const {createUserSchema, verifyAccountSchema, verifyEmailSchema, getUserSchema, updateUserSchema} = userSchemas
+const {createUserSchema, verifyAccountSchema, verifyEmailSchema, getUserSchema, updateUserSchema, searchUserSchema} = userSchemas
 
 userEmiter.on("get user",async ({params,res})=>{
     const {error} = getUserSchema.validate(params)
@@ -23,9 +26,9 @@ userEmiter.on("get user",async ({params,res})=>{
     }
 })
 
-userEmiter.on("get self", async({req,res})=>{
+userEmiter.on("get self", async({req,res}:ReqResPair)=>{
     try {
-     const user = await User.findById(req.user).select({username:1, firstName:1, lastName:1, lastSeen:1, registration:1,phone:1, bio:1  }) 
+     const user = await User.findById(req.userId).select({username:1, firstName:1, lastName:1, lastSeen:1, registration:1,phone:1, bio:1  }) 
      res.status(StatusCodes.OK).json(user)
     }
     catch (error) {
@@ -75,16 +78,16 @@ userEmiter.on("create user", async ({req,res})=>{
 
 
 
-userEmiter.on("verify account", async ({req,res})=>{
+userEmiter.on("verify account", async ({req,res}:ReqResPair)=>{
     if(!req.emailVerified) return res.status(StatusCodes.UNAUTHORIZED).send("email not verified")
     try {
         const {error} = verifyAccountSchema.validate(req.body)
         if(error) return res.status(StatusCodes.BAD_REQUEST).send(error.message)
         const {username, firstName, lastName, phone, bio} = req.body
-        const keyPair = await encryption.generateKeyPair()
+        const keyPair = encryption.generateKeyPair()
         const publicKey = keyPair.publicKey
         const encryptedKeyPair = await  encryption.encryptKeyPair(keyPair)
-        const user = await User.findByIdAndUpdate(req.user,{
+        await req.user.updateOne({
             $set :{
                 isVerified:true,
                 accountVerified:true,
@@ -96,44 +99,43 @@ userEmiter.on("verify account", async ({req,res})=>{
                 bio, 
                 keyPair:encryptedKeyPair
             }
-        }, {new:true}).select({accountVerified:1 , emailVerified:1, isVerified:1})
-        if(!user) return res.status(StatusCodes.NOT_FOUND).send("user not found")
-        const token = Helpers.generateUserToken(user.toJSON())
+        })
+        const token = Helpers.generateUserToken({_id:req.userId,isVerified:true,emailVerified:true,accountVerified:true})
         res.header("authorization",token).status(StatusCodes.OK).send({status:"success"})
     } catch (error) {
         res.status(StatusCodes.INTERNAL_SERVER_ERROR).send("server error")
     }
 })
 
-userEmiter.on("verify email", async({req, res})=>{
+userEmiter.on("verify email", async({req, res}:ReqResPair)=>{
     try{
         if (req.emailVerified) return res.status(StatusCodes.BAD_REQUEST).send("email already verified")
         const {error}= verifyEmailSchema.validate(req.body)
         if(error) return res.status(StatusCodes.BAD_REQUEST).send(error.message)
         const {otp}= req.body
         const otpInDatabase = await OTP.findById(otp)
-        if(otpInDatabase && otpInDatabase.email == req.user && otpInDatabase.expiry <= Date.now()){
-        const user = await User.findByIdAndUpdate(req.user,{
+        if(otpInDatabase && otpInDatabase.email == req.userId && otpInDatabase.expiry <= Date.now()){
+        await req.user.updateOne({
             $set:{
                 emailVerified:true, 
             }
-        },{new:true}).select({isVerified:1 , accountVerified:1, emailVerified:1})
-        if(!user) return res.status(StatusCodes.NOT_FOUND).send("user not found")
-        const token = Helpers.generateUserToken(user.toJSON())
+        })
+        const token = Helpers.generateUserToken({_id:req.userId,isVerified:false,emailVerified:true,accountVerified:false})
         res.header("authorization",token).status(StatusCodes.OK).json({status:"success"})
         }
         else return res.status(StatusCodes.BAD_REQUEST).send("Incorrect code")
     }
-    catch{
+    catch(error){
+        console.log(error)
         res.status(StatusCodes.INTERNAL_SERVER_ERROR).send("server error")
     }
 })
 
 
-userEmiter.on("resend otp", async({req, res} )=>{
+userEmiter.on("resend otp", async({req, res}:ReqResPair )=>{
     try{
         if(req.emailVerified) return res.status(StatusCodes.BAD_REQUEST).send("email already verified")
-        const otp = await  Helpers.OTPSender(req.user,5)
+        const otp = await  Helpers.OTPSender(req.userId,5)
         if(otp){
             const otpObject = new OTP({
                 _id:otp,
@@ -150,11 +152,20 @@ userEmiter.on("resend otp", async({req, res} )=>{
     }
 })
 
-userEmiter.on("get conversations", async({req,res})=>{
+userEmiter.on("get conversations", async({req,res}:ReqResPair)=>{
     try{
-        const response = await User.findById(req.user).populate("conversations")
+        const response = await User.findById(req.userId).populate("conversations")
         if(response){
-            res.status(StatusCodes.OK).json(response.conversations)
+            let editedConversations = response.conversations.map(async (conversation:any) =>{
+                if(conversation.type == "single"){
+                    let  otherUser = conversation.users.filter((user:string)=> user != req.userId)[0]
+                    otherUser = await User.findById(otherUser)
+                    conversation.name = otherUser.username 
+                }
+                return conversation
+            })
+            const result = await Promise.all(editedConversations)
+            res.status(StatusCodes.OK).json(result)
         }
     }
     catch (error){
@@ -162,47 +173,104 @@ userEmiter.on("get conversations", async({req,res})=>{
     }
 })
 
-userEmiter.on("add user", async({req, res})=>{
+userEmiter.on("add user", async({req, res}:ReqResPair)=>{
     try{
        const {error}= getUserSchema.validate(req.params)
        if(error)return res.status(StatusCodes.BAD_REQUEST).send(error.message)
        const {email}= req.params
+       if(email == req.userId) return res.status(StatusCodes.BAD_REQUEST).send("you cannot add yourself to contacts")
        const user = await User.findById(email)
-       const self = await User.findById(req.user)
-       if(user && self){
-        if (self.contacts.includes(email))return res.status(StatusCodes.BAD_REQUEST).send("user already a contact")
-        await User.findByIdAndUpdate(req.user, {
-            $push:{contacts:email}
-        })
-        res.status(StatusCodes.OK).send({status:"success"})
-       }
-       else return res.status(StatusCodes.NOT_FOUND).send("user not found")
+       if(!user)return  res.status(StatusCodes.NOT_FOUND).send("user not found")
+       if (req.user.pendingContactsSent.includes(email)) return res.status(StatusCodes.BAD_REQUEST).send("you have already send a request to this user")
+       if (req.user.contacts.includes(email))return res.status(StatusCodes.BAD_REQUEST).send("user already a contact")
+       await req.user.updateOne({$push:{pendingContactsSent:email}})
+       await user.updateOne({$push:{pendingContactsReceived:req.userId}})
+       res.status(StatusCodes.OK).send({status:"success"})
     }
     catch (error){
         res.status(StatusCodes.INTERNAL_SERVER_ERROR).send("server error")
     }
 })
 
-userEmiter.on("get contacts", async({req, res})=>{
+userEmiter.on("accept Request", async({req,res}:ReqResPair)=>{
     try {
-        const response  = await User.findById(req.user).select({
-            contacts:1
+        const {error} = getUserSchema.validate(req.params)
+        if(error) return res.status(StatusCodes.BAD_REQUEST).send(error.message)
+        const {email} = req.params
+        const user = await User.findById(email)
+        if(!user) return res.status(StatusCodes.NOT_FOUND).send("user not found")
+        if(!req.user.pendingContactsReceived.includes(email)) return res.status(StatusCodes.BAD_REQUEST).send("user has not sent you a contact reqquest")
+        const pendingContactsReceived= req.user.pendingContactsReceived.filter(item => item != email )
+        const pendingContactsSent = user.pendingContactsSent.filter(item => item !== req.userId)
+        await req.user.updateOne({
+            $push:{contacts:email},
+            $set:{pendingContactsReceived}
         })
-        const contacts = _.omit(response?.toJSON(),["_id"])
-        res.status(StatusCodes.OK).json(contacts)
+        await user.updateOne({
+            $push:{contacts:req.userId},
+            $set:{pendingContactsSent}
+        })
+        res.status(StatusCodes.OK).json({status:"success"})
+    } catch (error) {
+        console.log(error)
+        res.status(StatusCodes.INTERNAL_SERVER_ERROR).send("server error")
+    }
+})
+
+userEmiter.on("get contacts", async({req, res}:ReqResPair)=>{
+    try {
+        let  contacts = await  User.findById(req.userId).populate({path:"contacts", select:"username _id"})
+        res.status(StatusCodes.OK).json(contacts?.contacts)
     } catch (error) {
         res.status(StatusCodes.INTERNAL_SERVER_ERROR).send("server error")
     }
 })
 
-userEmiter.on("update user", async ({req,res})=>{
+userEmiter.on("update user", async ({req,res}:ReqResPair)=>{
     try{
         const {error} =  updateUserSchema.validate(req.body)
         if(error) return res.status(StatusCodes.BAD_REQUEST).send(error.message)
-        await User.findByIdAndUpdate(req.user,req.body)
+        await req.user.updateOne(req.body)
         res.status(StatusCodes.OK).json({status:"success"})
     }
     catch (error){
+        res.status(StatusCodes.INTERNAL_SERVER_ERROR).send("server error")
+    }
+})
+
+userEmiter.on("get pending requests sent",async({req,res}:ReqResPair)=>{
+    try{
+        let contacts = await User.findById(req.userId).populate({path:"pendingContactsSent", select:"username _id" })
+        res.status(StatusCodes.OK).json(contacts?.pendingContactsSent)
+    }
+    catch (error){
+        res.status(StatusCodes.INTERNAL_SERVER_ERROR).send("server error")
+    }
+})
+
+userEmiter.on("get pending requests received",async({req,res}:ReqResPair)=>{
+    try{
+        let contacts = await User.findById(req.userId).populate({path:"pendingContactsReceived", select:"username _id" })
+        res.status(StatusCodes.OK).json(contacts?.pendingContactsReceived)
+        
+    }
+    catch (error){
+        res.status(StatusCodes.INTERNAL_SERVER_ERROR).send("server error")
+    }
+})
+
+userEmiter.on("search user",async({req,res}:ReqResPair)=>{
+    const {error} = searchUserSchema.validate(req.params)
+    if(error)return res.status(StatusCodes.BAD_REQUEST).send(error.message)
+    const {email} = req.params
+    try {
+        const expression = `.*${email}.*`
+        const regex = new RegExp(expression,"g")
+        const result = await User.find({
+        _id:{$regex:regex},isVerified:true
+        }).select({username:1})
+        res.status(StatusCodes.OK).json(result)
+    } catch (error) {
         res.status(StatusCodes.INTERNAL_SERVER_ERROR).send("server error")
     }
 })

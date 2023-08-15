@@ -13,11 +13,20 @@ const router = express_1.default.Router();
 router.get("/contacts", authourization_1.default, restriction_1.default, (req, res) => {
     userEmiter.emit("get contacts", { req, res });
 });
+router.get("/searchUser/:email", authourization_1.default, restriction_1.default, (req, res) => {
+    userEmiter.emit("search user", { req, res });
+});
 router.get("/conversations", authourization_1.default, restriction_1.default, (req, res) => {
     userEmiter.emit("get conversations", { req, res });
 });
 router.get("/self", authourization_1.default, restriction_1.default, (req, res) => {
     userEmiter.emit("get self", { req, res });
+});
+router.get("/pending/sent", authourization_1.default, restriction_1.default, (req, res) => {
+    userEmiter.emit("get pending requests sent", { req, res });
+});
+router.get("/pending/received", authourization_1.default, restriction_1.default, (req, res) => {
+    userEmiter.emit("get pending requests received", { req, res });
 });
 router.get('/:email', (req, res) => {
     userEmiter.emit("get user", { params: req.params, res });
@@ -36,6 +45,9 @@ router.post("/add/:email", authourization_1.default, restriction_1.default, (req
 });
 router.post("/resendOtp", authourization_1.default, (req, res) => {
     userEmiter.emit("resend otp", { req, res });
+});
+router.post("/accept/:email", authourization_1.default, restriction_1.default, (req, res) => {
+    userEmiter.emit("accept Request", { req, res });
 });
 router.put("/", authourization_1.default, restriction_1.default, (req, res) => {
     userEmiter.emit("update user", { req, res });

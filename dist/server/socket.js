@@ -16,8 +16,10 @@ const socketAuthentication_1 = __importDefault(require("../middleware/socketAuth
 const socket_1 = __importDefault(require("../lib/socket"));
 const socketHandler = (io) => {
     io.use(socketAuthentication_1.default);
-    io.on("connection", (socket) => {
-        console.log("user connected");
+    io.on("connection", (socket) => __awaiter(void 0, void 0, void 0, function* () {
+        console.log("user connected", socket.user);
+        const onlineContacts = yield socket_1.default.getAllOnlineContacts(socket.user, io);
+        socket.emit("onlineContacts", onlineContacts);
         socket.on("join", ({ conversationId }) => __awaiter(void 0, void 0, void 0, function* () {
             try {
                 const groupKey = yield socket_1.default.getUserGroupKey(socket.user, conversationId);
@@ -25,31 +27,39 @@ const socketHandler = (io) => {
                 socket.join(conversationId);
                 const previousMessages = yield socket_1.default.getPreviousMessages(conversationId);
                 socket.emit("previousMessages", previousMessages);
-                const onlineUsers = yield socket_1.default.getAllSockets(io, conversationId);
-                socket.emit("onlineUsers", onlineUsers);
+                const onlineUsers = yield socket_1.default.getAllSocketsInRoom(io, conversationId);
+                io.to(conversationId).emit("onlineUsers", onlineUsers);
             }
             catch (error) {
                 console.log(error);
                 socket.emit("conn_error", error);
             }
         }));
-        socket.on("message", ({ body, conversationId }) => __awaiter(void 0, void 0, void 0, function* () {
+        socket.on("leaveRoom", ({ conversationId }) => __awaiter(void 0, void 0, void 0, function* () {
             try {
-                yield socket_1.default.sendMessage(io, body, conversationId);
+                yield socket_1.default.leaveRoom(socket, io, conversationId);
             }
             catch (error) {
                 socket.emit("conn_error", error);
             }
         }));
-        socket.on("disconnect", () => __awaiter(void 0, void 0, void 0, function* () {
+        socket.on("message", ({ body, conversationId }) => __awaiter(void 0, void 0, void 0, function* () {
             try {
-                socket_1.default.leaveAllRooms(socket, io);
+                yield socket_1.default.sendMessage(io, body, conversationId, socket.user);
+            }
+            catch (error) {
+                socket.emit("conn_error", error);
+            }
+        }));
+        socket.on("disconnecting", () => __awaiter(void 0, void 0, void 0, function* () {
+            try {
+                yield socket_1.default.leaveAllRooms(socket, io);
                 yield socket_1.default.updateLastSeen(socket.user);
             }
             catch (error) {
                 socket.emit("conn_error", error);
             }
         }));
-    });
+    }));
 };
 exports.default = socketHandler;

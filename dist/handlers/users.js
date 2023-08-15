@@ -41,10 +41,9 @@ const otps_1 = __importDefault(require("../models/otps"));
 const encryption_1 = __importDefault(require("../lib/encryption"));
 const http_status_codes_1 = require("http-status-codes");
 const helpers_1 = __importDefault(require("../lib/helpers"));
-const lodash_1 = __importDefault(require("lodash"));
 const { userEmiter } = emiters_1.default;
 const encryption = new encryption_1.default();
-const { createUserSchema, verifyAccountSchema, verifyEmailSchema, getUserSchema, updateUserSchema } = users_1.userSchemas;
+const { createUserSchema, verifyAccountSchema, verifyEmailSchema, getUserSchema, updateUserSchema, searchUserSchema } = users_1.userSchemas;
 userEmiter.on("get user", ({ params, res }) => __awaiter(void 0, void 0, void 0, function* () {
     const { error } = getUserSchema.validate(params);
     if (error)
@@ -63,7 +62,7 @@ userEmiter.on("get user", ({ params, res }) => __awaiter(void 0, void 0, void 0,
 }));
 userEmiter.on("get self", ({ req, res }) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const user = yield users_1.default.findById(req.user).select({ username: 1, firstName: 1, lastName: 1, lastSeen: 1, registration: 1, phone: 1, bio: 1 });
+        const user = yield users_1.default.findById(req.userId).select({ username: 1, firstName: 1, lastName: 1, lastSeen: 1, registration: 1, phone: 1, bio: 1 });
         res.status(http_status_codes_1.StatusCodes.OK).json(user);
     }
     catch (error) {
@@ -118,10 +117,10 @@ userEmiter.on("verify account", ({ req, res }) => __awaiter(void 0, void 0, void
         if (error)
             return res.status(http_status_codes_1.StatusCodes.BAD_REQUEST).send(error.message);
         const { username, firstName, lastName, phone, bio } = req.body;
-        const keyPair = yield encryption.generateKeyPair();
+        const keyPair = encryption.generateKeyPair();
         const publicKey = keyPair.publicKey;
         const encryptedKeyPair = yield encryption.encryptKeyPair(keyPair);
-        const user = yield users_1.default.findByIdAndUpdate(req.user, {
+        yield req.user.updateOne({
             $set: {
                 isVerified: true,
                 accountVerified: true,
@@ -133,10 +132,8 @@ userEmiter.on("verify account", ({ req, res }) => __awaiter(void 0, void 0, void
                 bio,
                 keyPair: encryptedKeyPair
             }
-        }, { new: true }).select({ accountVerified: 1, emailVerified: 1, isVerified: 1 });
-        if (!user)
-            return res.status(http_status_codes_1.StatusCodes.NOT_FOUND).send("user not found");
-        const token = helpers_1.default.generateUserToken(user.toJSON());
+        });
+        const token = helpers_1.default.generateUserToken({ _id: req.userId, isVerified: true, emailVerified: true, accountVerified: true });
         res.header("authorization", token).status(http_status_codes_1.StatusCodes.OK).send({ status: "success" });
     }
     catch (error) {
@@ -152,21 +149,20 @@ userEmiter.on("verify email", ({ req, res }) => __awaiter(void 0, void 0, void 0
             return res.status(http_status_codes_1.StatusCodes.BAD_REQUEST).send(error.message);
         const { otp } = req.body;
         const otpInDatabase = yield otps_1.default.findById(otp);
-        if (otpInDatabase && otpInDatabase.email == req.user && otpInDatabase.expiry <= Date.now()) {
-            const user = yield users_1.default.findByIdAndUpdate(req.user, {
+        if (otpInDatabase && otpInDatabase.email == req.userId && otpInDatabase.expiry <= Date.now()) {
+            yield req.user.updateOne({
                 $set: {
                     emailVerified: true,
                 }
-            }, { new: true }).select({ isVerified: 1, accountVerified: 1, emailVerified: 1 });
-            if (!user)
-                return res.status(http_status_codes_1.StatusCodes.NOT_FOUND).send("user not found");
-            const token = helpers_1.default.generateUserToken(user.toJSON());
+            });
+            const token = helpers_1.default.generateUserToken({ _id: req.userId, isVerified: false, emailVerified: true, accountVerified: false });
             res.header("authorization", token).status(http_status_codes_1.StatusCodes.OK).json({ status: "success" });
         }
         else
             return res.status(http_status_codes_1.StatusCodes.BAD_REQUEST).send("Incorrect code");
     }
-    catch (_a) {
+    catch (error) {
+        console.log(error);
         res.status(http_status_codes_1.StatusCodes.INTERNAL_SERVER_ERROR).send("server error");
     }
 }));
@@ -174,7 +170,7 @@ userEmiter.on("resend otp", ({ req, res }) => __awaiter(void 0, void 0, void 0, 
     try {
         if (req.emailVerified)
             return res.status(http_status_codes_1.StatusCodes.BAD_REQUEST).send("email already verified");
-        const otp = yield helpers_1.default.OTPSender(req.user, 5);
+        const otp = yield helpers_1.default.OTPSender(req.userId, 5);
         if (otp) {
             const otpObject = new otps_1.default({
                 _id: otp,
@@ -192,9 +188,18 @@ userEmiter.on("resend otp", ({ req, res }) => __awaiter(void 0, void 0, void 0, 
 }));
 userEmiter.on("get conversations", ({ req, res }) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const response = yield users_1.default.findById(req.user).populate("conversations");
+        const response = yield users_1.default.findById(req.userId).populate("conversations");
         if (response) {
-            res.status(http_status_codes_1.StatusCodes.OK).json(response.conversations);
+            let editedConversations = response.conversations.map((conversation) => __awaiter(void 0, void 0, void 0, function* () {
+                if (conversation.type == "single") {
+                    let otherUser = conversation.users.filter((user) => user != req.userId)[0];
+                    otherUser = yield users_1.default.findById(otherUser);
+                    conversation.name = otherUser.username;
+                }
+                return conversation;
+            }));
+            const result = yield Promise.all(editedConversations);
+            res.status(http_status_codes_1.StatusCodes.OK).json(result);
         }
     }
     catch (error) {
@@ -207,30 +212,55 @@ userEmiter.on("add user", ({ req, res }) => __awaiter(void 0, void 0, void 0, fu
         if (error)
             return res.status(http_status_codes_1.StatusCodes.BAD_REQUEST).send(error.message);
         const { email } = req.params;
+        if (email == req.userId)
+            return res.status(http_status_codes_1.StatusCodes.BAD_REQUEST).send("you cannot add yourself to contacts");
         const user = yield users_1.default.findById(email);
-        const self = yield users_1.default.findById(req.user);
-        if (user && self) {
-            if (self.contacts.includes(email))
-                return res.status(http_status_codes_1.StatusCodes.BAD_REQUEST).send("user already a contact");
-            yield users_1.default.findByIdAndUpdate(req.user, {
-                $push: { contacts: email }
-            });
-            res.status(http_status_codes_1.StatusCodes.OK).send({ status: "success" });
-        }
-        else
+        if (!user)
             return res.status(http_status_codes_1.StatusCodes.NOT_FOUND).send("user not found");
+        if (req.user.pendingContactsSent.includes(email))
+            return res.status(http_status_codes_1.StatusCodes.BAD_REQUEST).send("you have already send a request to this user");
+        if (req.user.contacts.includes(email))
+            return res.status(http_status_codes_1.StatusCodes.BAD_REQUEST).send("user already a contact");
+        yield req.user.updateOne({ $push: { pendingContactsSent: email } });
+        yield user.updateOne({ $push: { pendingContactsReceived: req.userId } });
+        res.status(http_status_codes_1.StatusCodes.OK).send({ status: "success" });
     }
     catch (error) {
         res.status(http_status_codes_1.StatusCodes.INTERNAL_SERVER_ERROR).send("server error");
     }
 }));
+userEmiter.on("accept Request", ({ req, res }) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const { error } = getUserSchema.validate(req.params);
+        if (error)
+            return res.status(http_status_codes_1.StatusCodes.BAD_REQUEST).send(error.message);
+        const { email } = req.params;
+        const user = yield users_1.default.findById(email);
+        if (!user)
+            return res.status(http_status_codes_1.StatusCodes.NOT_FOUND).send("user not found");
+        if (!req.user.pendingContactsReceived.includes(email))
+            return res.status(http_status_codes_1.StatusCodes.BAD_REQUEST).send("user has not sent you a contact reqquest");
+        const pendingContactsReceived = req.user.pendingContactsReceived.filter(item => item != email);
+        const pendingContactsSent = user.pendingContactsSent.filter(item => item !== req.userId);
+        yield req.user.updateOne({
+            $push: { contacts: email },
+            $set: { pendingContactsReceived }
+        });
+        yield user.updateOne({
+            $push: { contacts: req.userId },
+            $set: { pendingContactsSent }
+        });
+        res.status(http_status_codes_1.StatusCodes.OK).json({ status: "success" });
+    }
+    catch (error) {
+        console.log(error);
+        res.status(http_status_codes_1.StatusCodes.INTERNAL_SERVER_ERROR).send("server error");
+    }
+}));
 userEmiter.on("get contacts", ({ req, res }) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const response = yield users_1.default.findById(req.user).select({
-            contacts: 1
-        });
-        const contacts = lodash_1.default.omit(response === null || response === void 0 ? void 0 : response.toJSON(), ["_id"]);
-        res.status(http_status_codes_1.StatusCodes.OK).json(contacts);
+        let contacts = yield users_1.default.findById(req.userId).populate({ path: "contacts", select: "username _id" });
+        res.status(http_status_codes_1.StatusCodes.OK).json(contacts === null || contacts === void 0 ? void 0 : contacts.contacts);
     }
     catch (error) {
         res.status(http_status_codes_1.StatusCodes.INTERNAL_SERVER_ERROR).send("server error");
@@ -241,8 +271,43 @@ userEmiter.on("update user", ({ req, res }) => __awaiter(void 0, void 0, void 0,
         const { error } = updateUserSchema.validate(req.body);
         if (error)
             return res.status(http_status_codes_1.StatusCodes.BAD_REQUEST).send(error.message);
-        yield users_1.default.findByIdAndUpdate(req.user, req.body);
+        yield req.user.updateOne(req.body);
         res.status(http_status_codes_1.StatusCodes.OK).json({ status: "success" });
+    }
+    catch (error) {
+        res.status(http_status_codes_1.StatusCodes.INTERNAL_SERVER_ERROR).send("server error");
+    }
+}));
+userEmiter.on("get pending requests sent", ({ req, res }) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        let contacts = yield users_1.default.findById(req.userId).populate({ path: "pendingContactsSent", select: "username _id" });
+        res.status(http_status_codes_1.StatusCodes.OK).json(contacts === null || contacts === void 0 ? void 0 : contacts.pendingContactsSent);
+    }
+    catch (error) {
+        res.status(http_status_codes_1.StatusCodes.INTERNAL_SERVER_ERROR).send("server error");
+    }
+}));
+userEmiter.on("get pending requests received", ({ req, res }) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        let contacts = yield users_1.default.findById(req.userId).populate({ path: "pendingContactsReceived", select: "username _id" });
+        res.status(http_status_codes_1.StatusCodes.OK).json(contacts === null || contacts === void 0 ? void 0 : contacts.pendingContactsReceived);
+    }
+    catch (error) {
+        res.status(http_status_codes_1.StatusCodes.INTERNAL_SERVER_ERROR).send("server error");
+    }
+}));
+userEmiter.on("search user", ({ req, res }) => __awaiter(void 0, void 0, void 0, function* () {
+    const { error } = searchUserSchema.validate(req.params);
+    if (error)
+        return res.status(http_status_codes_1.StatusCodes.BAD_REQUEST).send(error.message);
+    const { email } = req.params;
+    try {
+        const expression = `.*${email}.*`;
+        const regex = new RegExp(expression, "g");
+        const result = yield users_1.default.find({
+            _id: { $regex: regex }, isVerified: true
+        }).select({ username: 1 });
+        res.status(http_status_codes_1.StatusCodes.OK).json(result);
     }
     catch (error) {
         res.status(http_status_codes_1.StatusCodes.INTERNAL_SERVER_ERROR).send("server error");

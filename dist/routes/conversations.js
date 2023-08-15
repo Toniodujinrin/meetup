@@ -10,6 +10,9 @@ require("../handlers/conversations");
 const emiters_1 = __importDefault(require("../lib/emiters"));
 const { conversationEmiter } = emiters_1.default;
 const router = express_1.default.Router();
+router.get("/:conversationId", authourization_1.default, restriction_1.default, (req, res) => {
+    conversationEmiter.emit("get conversation", { req, res });
+});
 router.post("/", authourization_1.default, restriction_1.default, (req, res) => {
     conversationEmiter.emit("create conversation", { req, res });
 });

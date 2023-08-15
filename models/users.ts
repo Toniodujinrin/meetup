@@ -1,5 +1,9 @@
 import mongoose from "mongoose";
 import Joi from "joi";
+import { ObjectId } from "mongodb";
+
+
+
 const usersSchema = new mongoose.Schema({
     _id:{type:String, required:true, trim:true},
     password:{type:String, required:true},
@@ -9,6 +13,8 @@ const usersSchema = new mongoose.Schema({
     lastName:{type:String, trim:true, minLength:2,maxLength:50 },  
     emailVerified:{default:false, type:Boolean},
     accountVerified:{default:false, type:Boolean},
+    pendingContactsSent : [{type:String, ref:"User"}],
+    pendingContactsReceived :[{type:String, ref:"User"}],
     contacts :[{type:String, ref:"User"}],
     isVerified:{default:false, type:Boolean} ,
     lastSeen:{default:Date.now(), type:Number},
@@ -21,7 +27,6 @@ const usersSchema = new mongoose.Schema({
        type:String, 
        minLength:2, 
        maxLength:120,
-
     },
     conversations:[{type:mongoose.Schema.Types.ObjectId, ref:"Conversation"}],
     conversationKeys:[{conversationId:String, groupKey:String}],
@@ -38,6 +43,9 @@ const usersSchema = new mongoose.Schema({
 const User = mongoose.model("User",usersSchema,"users")
 
 const userSchemas = {
+    searchUserSchema:Joi.object({
+        email:Joi.string().required()
+    }),
     getUserSchema:Joi.object({
        email:Joi.string().required().email({minDomainSegments:2}).min(2).max(50)
     }),

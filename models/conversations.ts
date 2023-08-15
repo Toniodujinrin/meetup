@@ -2,32 +2,30 @@ import Joi from "joi";
 import mongoose from "mongoose";
 import Message from "./message";
 import User from "./users";
+import { ObjectId } from "mongodb";
+import { Model } from "mongoose";
+import { ConversationInterface } from "../lib/types";
 
 
-interface ConversationInterface extends mongoose.Document{
-  
-   users:string[]
-   name:string
-   created:number 
-   messages:string[]
 
-}
-
-const conversationSchema = new mongoose.Schema({
-   users:{type:[String],required:true},
-   name:{type:String, required:true},
+const conversationSchema = new mongoose.Schema<ConversationInterface,Model<ConversationInterface>>({
+   users:[{type:String, ref:"User"}],
+   type:{type:String, enum:["group","single"]},
+   name:{type:String},
    created:{default:Date.now(), type:Number},
    messages:[{type:mongoose.Schema.Types.ObjectId, ref:"Message"}],
    conversationPic:{
     url:{type:String},
     publicId:{type:String}
-   }
+   },
+   lastSeen:{type:Number}
 })
 
 const conversationSchemas = {
    createConversationSchema : Joi.object({
+      type:Joi.string().required(),
       users:Joi.array().min(1).required(),
-      name:Joi.string().required()
+      name:Joi.string()
    }),
    addUserSchema:Joi.object({
       conversationId: Joi.string().required(),

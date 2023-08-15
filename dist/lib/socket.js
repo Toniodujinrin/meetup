@@ -19,30 +19,57 @@ const message_1 = __importDefault(require("../models/message"));
 class SocketLib {
 }
 _a = SocketLib;
-SocketLib.getAllSockets = (io, room) => __awaiter(void 0, void 0, void 0, function* () {
+SocketLib.getAllSocketsInRoom = (io, room) => __awaiter(void 0, void 0, void 0, function* () {
     const clients = yield io.in(room).fetchSockets();
     const ids = clients.map((client) => { return client.user; });
     return ids;
 });
-SocketLib.leaveAllRooms = (socket, io) => {
-    const rooms = Object.keys(socket.rooms);
-    const roomToLeave = rooms.filter(room => room !== socket.id && room !== undefined);
-    roomToLeave.forEach((room) => __awaiter(void 0, void 0, void 0, function* () {
-        socket.leave(room);
-        const ids = yield _a.getAllSockets(io, room);
-        io.to(room).emit("online", ids);
-    }));
-};
-SocketLib.sendMessage = (io, body, conversationId) => __awaiter(void 0, void 0, void 0, function* () {
+SocketLib.leaveAllRooms = (socket, io) => __awaiter(void 0, void 0, void 0, function* () {
+    for (let room of socket.rooms) {
+        if (room !== socket.id) {
+            let ids = yield _a.getAllSocketsInRoom(io, room);
+            ids = ids.filter(id => id !== socket.user);
+            io.to(room).emit("onlineUsers", ids);
+        }
+    }
+});
+SocketLib.leaveRoom = (socket, io, conversationId) => __awaiter(void 0, void 0, void 0, function* () {
+    yield socket.leave(conversationId);
+    const ids = yield _a.getAllSocketsInRoom(io, conversationId);
+    io.to(conversationId).emit("onlineUsers", ids);
+});
+SocketLib.getAllSockets = (io) => __awaiter(void 0, void 0, void 0, function* () {
+    const client = yield io.fetchSockets();
+    const ids = client.map((client) => { return client.user; });
+    return ids;
+});
+//room for optimization
+SocketLib.getAllOnlineContacts = (userId, io) => __awaiter(void 0, void 0, void 0, function* () {
+    const user = yield users_1.default.findById(userId);
+    const onlineContacts = [];
+    if (user) {
+        const contacts = user.contacts;
+        const onlineUsers = yield _a.getAllSockets(io);
+        for (let contact of contacts) {
+            if (onlineUsers.includes(contact)) {
+                onlineContacts.push(contact);
+            }
+        }
+    }
+    return onlineContacts;
+});
+SocketLib.sendMessage = (io, body, conversationId, senderId) => __awaiter(void 0, void 0, void 0, function* () {
     let message = new message_1.default({
         conversationId,
-        body: body
+        body,
+        senderId
     });
     message = yield message.save();
-    io.to(conversationId).emit("new_message", message);
+    const msg = yield message_1.default.findById(message._id).populate({ path: "senderId", select: "_id username" });
+    io.to(conversationId).emit("new_message", msg);
 });
 SocketLib.updateLastSeen = (email) => __awaiter(void 0, void 0, void 0, function* () {
-    users_1.default.findByIdAndUpdate(email, {
+    yield users_1.default.findByIdAndUpdate(email, {
         $set: { lastSeen: Date.now() }
     });
 });
@@ -57,7 +84,7 @@ SocketLib.getUserGroupKey = (email, conversationId) => __awaiter(void 0, void 0,
     throw new Error("invalid user");
 });
 SocketLib.getPreviousMessages = (conversationId) => __awaiter(void 0, void 0, void 0, function* () {
-    let previousMessages = yield conversations_1.default.findById(conversationId).populate("messages").select({ messages: 1 });
+    let previousMessages = yield conversations_1.default.findById(conversationId).populate({ path: "messages", populate: { path: "senderId", select: "_id username" } }).select({ messages: 1 });
     if (previousMessages)
         return previousMessages.messages;
 });

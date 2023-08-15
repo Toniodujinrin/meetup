@@ -1,19 +1,15 @@
 import mongoose from "mongoose";
 import Conversation from "./conversations";
+import { MessageInterface } from "../lib/types";
 
 
-interface MessageInterface extends mongoose.Document{
-    conversationId:string,
-    timeStamp:number, 
-    status:string,
-    body:String 
-}
 
 const messageSchema = new mongoose.Schema({
     conversationId:{type:String, required:true},
     timeStamp:{type:Number, default:Date.now() }, 
     expiry:{type:Number, default:Date.now()+86400000},
     status:{type:String, default:"delivered",  enum:["read","delivered"]},
+    senderId:{type:String, ref:"User"},
     body:String
 })
 

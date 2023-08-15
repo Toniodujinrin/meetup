@@ -13,11 +13,14 @@ const authorization = async (req:any,res:Response,next:NextFunction)=>{
         token = token.replace("Bearer","").trim()
         const payload:any = jwt.verify(token,key)
         const user = await User.findById(payload._id)
+    
         if(user){
-          req.user = payload._id 
-          req.isVerified = payload.isVerified
-          req.emailVerified = payload.emailVerified
-          req.accountVerified = payload.accountVerified
+          
+          req.user = user
+          req.userId = user._id
+          req.isVerified = user.isVerified
+          req.emailVerified = user.emailVerified
+          req.accountVerified = user.accountVerified
           next()
         }
         else return res.status(StatusCodes.UNAUTHORIZED).send("invalid token")

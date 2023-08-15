@@ -7,7 +7,9 @@ const {conversationEmiter}= emiters
 const router = express.Router()
 
 
-
+router.get("/:conversationId",authorization,restriction,(req,res)=>{
+  conversationEmiter.emit("get conversation",{req, res})
+})
 router.post("/",authorization, restriction, (req, res)=>{
   conversationEmiter.emit("create conversation",{req, res})
 })

@@ -15,6 +15,8 @@ const usersSchema = new mongoose_1.default.Schema({
     lastName: { type: String, trim: true, minLength: 2, maxLength: 50 },
     emailVerified: { default: false, type: Boolean },
     accountVerified: { default: false, type: Boolean },
+    pendingContactsSent: [{ type: String, ref: "User" }],
+    pendingContactsReceived: [{ type: String, ref: "User" }],
     contacts: [{ type: String, ref: "User" }],
     isVerified: { default: false, type: Boolean },
     lastSeen: { default: Date.now(), type: Number },
@@ -35,6 +37,9 @@ const usersSchema = new mongoose_1.default.Schema({
 });
 const User = mongoose_1.default.model("User", usersSchema, "users");
 const userSchemas = {
+    searchUserSchema: joi_1.default.object({
+        email: joi_1.default.string().required()
+    }),
     getUserSchema: joi_1.default.object({
         email: joi_1.default.string().required().email({ minDomainSegments: 2 }).min(2).max(50)
     }),

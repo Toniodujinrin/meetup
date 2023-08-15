@@ -10,11 +10,20 @@ const router = express.Router()
 router.get("/contacts", authorization,restriction, (req, res)=>{
     userEmiter.emit("get contacts",{req,res})
 })
+router.get("/searchUser/:email", authorization, restriction,(req,res)=>{
+    userEmiter.emit("search user", {req,res})
+})
 router.get("/conversations", authorization, restriction,(req,res)=>{
     userEmiter.emit("get conversations", {req, res})
 })
 router.get("/self", authorization, restriction,(req, res)=>{
     userEmiter.emit("get self", {req, res})
+})
+router.get("/pending/sent",authorization,restriction, (req,res)=>{
+    userEmiter.emit("get pending requests sent", {req,res})
+})
+router.get("/pending/received",authorization,restriction, (req,res)=>{
+    userEmiter.emit("get pending requests received", {req,res})
 })
 router.get('/:email',  (req,res)=>{
     userEmiter.emit("get user",{params:req.params,res})
@@ -32,11 +41,15 @@ router.post("/add/:email",authorization, restriction, (req,res)=>{
     userEmiter.emit("add user",{req,res})
 })
 router.post("/resendOtp", authorization, (req, res)=>{
-    userEmiter.emit("resend otp", {req, res})
+    userEmiter.emit("resend otp", {req,res})
+})
+router.post("/accept/:email",authorization,restriction,(req,res)=>{
+    userEmiter.emit("accept Request",{req,res})
 })
 router.put("/", authorization, restriction, (req,res)=>{
     userEmiter.emit("update user", {req, res})
 })
+
 
 
 

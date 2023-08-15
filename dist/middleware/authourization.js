@@ -24,10 +24,11 @@ const authorization = (req, res, next) => __awaiter(void 0, void 0, void 0, func
             const payload = jsonwebtoken_1.default.verify(token, key);
             const user = yield users_1.default.findById(payload._id);
             if (user) {
-                req.user = payload._id;
-                req.isVerified = payload.isVerified;
-                req.emailVerified = payload.emailVerified;
-                req.accountVerified = payload.accountVerified;
+                req.user = user;
+                req.userId = user._id;
+                req.isVerified = user.isVerified;
+                req.emailVerified = user.emailVerified;
+                req.accountVerified = user.accountVerified;
                 next();
             }
             else
