@@ -20,7 +20,7 @@ const socketHandler = (io:Server)=>{
                 socket.emit("groupKey",groupKey)
                 socket.join(conversationId)
                 const previousMessages = await SocketLib.getPreviousMessages(conversationId, socket)
-                socket.emit("previousMessages",previousMessages)
+                io.to(conversationId).emit("previousMessages",previousMessages)
                 const onlineUsers = await SocketLib.getAllSocketsInRoom(io, conversationId)
                 io.to(conversationId).emit("onlineUsers",onlineUsers)
             } catch (error) {
@@ -35,6 +35,12 @@ const socketHandler = (io:Server)=>{
           } catch (error) {
             socket.emit("conn_error",error)
           }
+        })
+
+        socket.on("messageRead", async ({conversationId})=>{
+          
+            const previousMessages = await SocketLib.getPreviousMessages(conversationId,socket)
+            io.to(conversationId).emit("previousMessages",previousMessages)
         })
 
        socket.on("message",async ({body,conversationId})=>{

@@ -89,7 +89,6 @@ class SocketLib{
                 if(lastMessage.senderId !== socket.user ){
                     const proc = messages.map(async message =>{
                         if(message.status !== "read"){
-                        console.log(message)
                         await Message.findByIdAndUpdate(message._id,{
                             $set:{status:"read"}
                         })

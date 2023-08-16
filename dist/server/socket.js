@@ -26,7 +26,7 @@ const socketHandler = (io) => {
                 socket.emit("groupKey", groupKey);
                 socket.join(conversationId);
                 const previousMessages = yield socket_1.default.getPreviousMessages(conversationId, socket);
-                socket.emit("previousMessages", previousMessages);
+                io.to(conversationId).emit("previousMessages", previousMessages);
                 const onlineUsers = yield socket_1.default.getAllSocketsInRoom(io, conversationId);
                 io.to(conversationId).emit("onlineUsers", onlineUsers);
             }
@@ -42,6 +42,10 @@ const socketHandler = (io) => {
             catch (error) {
                 socket.emit("conn_error", error);
             }
+        }));
+        socket.on("messageRead", ({ conversationId }) => __awaiter(void 0, void 0, void 0, function* () {
+            const previousMessages = yield socket_1.default.getPreviousMessages(conversationId, socket);
+            io.to(conversationId).emit("previousMessages", previousMessages);
         }));
         socket.on("message", ({ body, conversationId }) => __awaiter(void 0, void 0, void 0, function* () {
             try {

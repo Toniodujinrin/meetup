@@ -92,7 +92,6 @@ SocketLib.getPreviousMessages = (conversationId, socket) => __awaiter(void 0, vo
             if (lastMessage.senderId !== socket.user) {
                 const proc = messages.map((message) => __awaiter(void 0, void 0, void 0, function* () {
                     if (message.status !== "read") {
-                        console.log(message);
                         yield message_1.default.findByIdAndUpdate(message._id, {
                             $set: { status: "read" }
                         });
