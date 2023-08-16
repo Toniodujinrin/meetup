@@ -3,7 +3,7 @@ import OTP from "../models/otps"
 class Processes{
     static envChecker = ()=>{
         console.log("\x1b[33m%s\x1b[0m","[+] Checking environment variables ...")
-        if( process.env.PORT && process.env.MONGO_URI && process.env.KEY, process.env.EMAIL_SERVER, process.env.HASHING_SECRET){
+        if( process.env.PORT && process.env.MONGO_URI && process.env.KEY, process.env.EMAIL_SERVER, process.env.HASHING_SECRET,process.env.CLOUDINARY_NAME,process.env.CLOUDINARY_API_KEY,process.env.CLOUDINARY_API_SECRET){
             console.log("\x1b[32m%s\x1b[0m","[o] All environment variables available ...")
         }
         else{
