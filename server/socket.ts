@@ -1,7 +1,6 @@
 import { Server, Socket } from "socket.io"
 import authorization from "../middleware/socketAuthentication"
 import SocketLib from "../lib/socket"
-import { disconnect } from "process"
 import { SocketInterface } from "../lib/types"
 
 
@@ -20,7 +19,7 @@ const socketHandler = (io:Server)=>{
                 const groupKey = await SocketLib.getUserGroupKey(socket.user,conversationId)
                 socket.emit("groupKey",groupKey)
                 socket.join(conversationId)
-                const previousMessages = await SocketLib.getPreviousMessages(conversationId)
+                const previousMessages = await SocketLib.getPreviousMessages(conversationId, socket)
                 socket.emit("previousMessages",previousMessages)
                 const onlineUsers = await SocketLib.getAllSocketsInRoom(io, conversationId)
                 io.to(conversationId).emit("onlineUsers",onlineUsers)

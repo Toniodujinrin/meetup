@@ -6,18 +6,19 @@ import { StatusCodes } from "http-status-codes";
 import Helpers from "../lib/helpers"
 import {ReqResPair } from "../lib/types";
 import _ from "lodash"
+import { deleteImage, uploadImage } from "../lib/images";
 
 
 const {userEmiter}= emiter
 const encryption = new Encryption()
-const {createUserSchema, verifyAccountSchema, verifyEmailSchema, getUserSchema, updateUserSchema, searchUserSchema} = userSchemas
+const {createUserSchema, verifyAccountSchema, verifyEmailSchema, getUserSchema, updateUserSchema, searchUserSchema, uploadImageSchema} = userSchemas
 
 userEmiter.on("get user",async ({params,res})=>{
     const {error} = getUserSchema.validate(params)
     if(error) return res.status(StatusCodes.BAD_REQUEST).send(error.message)
     const {email} = params 
     try{
-        const user = await User.findOne({_id:email, isVerified:true}).select({username:1, firstName:1, lastName:1, lastSeen:1 , resgistration:1 , phone:1, boi:1})
+        const user = await User.findOne({_id:email, isVerified:true}).select({username:1, firstName:1, lastName:1, lastSeen:1 , resgistration:1 , phone:1, boi:1, profilePic:1})
         if(user)res.status(StatusCodes.OK).json(user)
         else res.status(StatusCodes.NOT_FOUND).send("user not found")
     }
@@ -28,7 +29,7 @@ userEmiter.on("get user",async ({params,res})=>{
 
 userEmiter.on("get self", async({req,res}:ReqResPair)=>{
     try {
-     const user = await User.findById(req.userId).select({username:1, firstName:1, lastName:1, lastSeen:1, registration:1,phone:1, bio:1  }) 
+     const user = await User.findById(req.userId).select({username:1, firstName:1, lastName:1, lastSeen:1, registration:1,phone:1, bio:1, profilePic:1  }) 
      res.status(StatusCodes.OK).json(user)
     }
     catch (error) {
@@ -161,6 +162,7 @@ userEmiter.on("get conversations", async({req,res}:ReqResPair)=>{
                     let  otherUser = conversation.users.filter((user:string)=> user != req.userId)[0]
                     otherUser = await User.findById(otherUser)
                     conversation.name = otherUser.username 
+                    conversation.conversationPic = otherUser.profilePic
                 }
                 return conversation
             })
@@ -219,7 +221,7 @@ userEmiter.on("accept Request", async({req,res}:ReqResPair)=>{
 
 userEmiter.on("get contacts", async({req, res}:ReqResPair)=>{
     try {
-        let  contacts = await  User.findById(req.userId).populate({path:"contacts", select:"username _id"})
+        let  contacts = await  User.findById(req.userId).populate({path:"contacts", select:"username _id profilePic"})
         res.status(StatusCodes.OK).json(contacts?.contacts)
     } catch (error) {
         res.status(StatusCodes.INTERNAL_SERVER_ERROR).send("server error")
@@ -240,7 +242,7 @@ userEmiter.on("update user", async ({req,res}:ReqResPair)=>{
 
 userEmiter.on("get pending requests sent",async({req,res}:ReqResPair)=>{
     try{
-        let contacts = await User.findById(req.userId).populate({path:"pendingContactsSent", select:"username _id" })
+        let contacts = await User.findById(req.userId).populate({path:"pendingContactsSent", select:"username _id profilePic" })
         res.status(StatusCodes.OK).json(contacts?.pendingContactsSent)
     }
     catch (error){
@@ -250,7 +252,7 @@ userEmiter.on("get pending requests sent",async({req,res}:ReqResPair)=>{
 
 userEmiter.on("get pending requests received",async({req,res}:ReqResPair)=>{
     try{
-        let contacts = await User.findById(req.userId).populate({path:"pendingContactsReceived", select:"username _id" })
+        let contacts = await User.findById(req.userId).populate({path:"pendingContactsReceived", select:"username _id profilePic" })
         res.status(StatusCodes.OK).json(contacts?.pendingContactsReceived)
         
     }
@@ -268,9 +270,30 @@ userEmiter.on("search user",async({req,res}:ReqResPair)=>{
         const regex = new RegExp(expression,"g")
         const result = await User.find({
         _id:{$regex:regex},isVerified:true
-        }).select({username:1})
+        }).select({username:1, profilePic:1})
         res.status(StatusCodes.OK).json(result)
     } catch (error) {
+        res.status(StatusCodes.INTERNAL_SERVER_ERROR).send("server error")
+    }
+})
+
+
+userEmiter.on("upload image", async({req,res}:ReqResPair) => {
+    try {
+    const {error} = uploadImageSchema.validate(req.body)
+    if(error) return res.status(StatusCodes.BAD_REQUEST).send(error.message)
+    const {image} = req.body
+    const imageObject = await uploadImage(image,"profilePictures")
+    if(req.user.profilePic.public_id){
+        
+        await deleteImage(req.user.profilePic.public_id)
+    }
+    await req.user.updateOne({
+        $set:{ profilePic:imageObject}
+    })
+    res.status(StatusCodes.OK).json({status:"success"})
+    } catch (error) {
+        console.log(error)
         res.status(StatusCodes.INTERNAL_SERVER_ERROR).send("server error")
     }
 })

@@ -83,9 +83,26 @@ SocketLib.getUserGroupKey = (email, conversationId) => __awaiter(void 0, void 0,
     }
     throw new Error("invalid user");
 });
-SocketLib.getPreviousMessages = (conversationId) => __awaiter(void 0, void 0, void 0, function* () {
-    let previousMessages = yield conversations_1.default.findById(conversationId).populate({ path: "messages", populate: { path: "senderId", select: "_id username" } }).select({ messages: 1 });
-    if (previousMessages)
-        return previousMessages.messages;
+SocketLib.getPreviousMessages = (conversationId, socket) => __awaiter(void 0, void 0, void 0, function* () {
+    let previousMessages = yield conversations_1.default.findById(conversationId).populate("messages");
+    if (previousMessages) {
+        const messages = previousMessages.messages;
+        if (messages.length > 0) {
+            const lastMessage = messages[messages.length - 1];
+            if (lastMessage.senderId !== socket.user) {
+                const proc = messages.map((message) => __awaiter(void 0, void 0, void 0, function* () {
+                    if (message.status !== "read") {
+                        console.log(message);
+                        yield message_1.default.findByIdAndUpdate(message._id, {
+                            $set: { status: "read" }
+                        });
+                    }
+                }));
+                yield Promise.all(proc);
+            }
+        }
+        const updatedPreviousMessages = yield conversations_1.default.findById(conversationId).populate({ path: "messages", populate: { path: "senderId", select: "_id username profilePic" } });
+        return updatedPreviousMessages === null || updatedPreviousMessages === void 0 ? void 0 : updatedPreviousMessages.messages;
+    }
 });
 exports.default = SocketLib;

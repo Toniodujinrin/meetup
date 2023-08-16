@@ -41,16 +41,17 @@ const otps_1 = __importDefault(require("../models/otps"));
 const encryption_1 = __importDefault(require("../lib/encryption"));
 const http_status_codes_1 = require("http-status-codes");
 const helpers_1 = __importDefault(require("../lib/helpers"));
+const images_1 = require("../lib/images");
 const { userEmiter } = emiters_1.default;
 const encryption = new encryption_1.default();
-const { createUserSchema, verifyAccountSchema, verifyEmailSchema, getUserSchema, updateUserSchema, searchUserSchema } = users_1.userSchemas;
+const { createUserSchema, verifyAccountSchema, verifyEmailSchema, getUserSchema, updateUserSchema, searchUserSchema, uploadImageSchema } = users_1.userSchemas;
 userEmiter.on("get user", ({ params, res }) => __awaiter(void 0, void 0, void 0, function* () {
     const { error } = getUserSchema.validate(params);
     if (error)
         return res.status(http_status_codes_1.StatusCodes.BAD_REQUEST).send(error.message);
     const { email } = params;
     try {
-        const user = yield users_1.default.findOne({ _id: email, isVerified: true }).select({ username: 1, firstName: 1, lastName: 1, lastSeen: 1, resgistration: 1, phone: 1, boi: 1 });
+        const user = yield users_1.default.findOne({ _id: email, isVerified: true }).select({ username: 1, firstName: 1, lastName: 1, lastSeen: 1, resgistration: 1, phone: 1, boi: 1, profilePic: 1 });
         if (user)
             res.status(http_status_codes_1.StatusCodes.OK).json(user);
         else
@@ -62,7 +63,7 @@ userEmiter.on("get user", ({ params, res }) => __awaiter(void 0, void 0, void 0,
 }));
 userEmiter.on("get self", ({ req, res }) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const user = yield users_1.default.findById(req.userId).select({ username: 1, firstName: 1, lastName: 1, lastSeen: 1, registration: 1, phone: 1, bio: 1 });
+        const user = yield users_1.default.findById(req.userId).select({ username: 1, firstName: 1, lastName: 1, lastSeen: 1, registration: 1, phone: 1, bio: 1, profilePic: 1 });
         res.status(http_status_codes_1.StatusCodes.OK).json(user);
     }
     catch (error) {
@@ -195,6 +196,7 @@ userEmiter.on("get conversations", ({ req, res }) => __awaiter(void 0, void 0, v
                     let otherUser = conversation.users.filter((user) => user != req.userId)[0];
                     otherUser = yield users_1.default.findById(otherUser);
                     conversation.name = otherUser.username;
+                    conversation.conversationPic = otherUser.profilePic;
                 }
                 return conversation;
             }));
@@ -259,7 +261,7 @@ userEmiter.on("accept Request", ({ req, res }) => __awaiter(void 0, void 0, void
 }));
 userEmiter.on("get contacts", ({ req, res }) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        let contacts = yield users_1.default.findById(req.userId).populate({ path: "contacts", select: "username _id" });
+        let contacts = yield users_1.default.findById(req.userId).populate({ path: "contacts", select: "username _id profilePic" });
         res.status(http_status_codes_1.StatusCodes.OK).json(contacts === null || contacts === void 0 ? void 0 : contacts.contacts);
     }
     catch (error) {
@@ -280,7 +282,7 @@ userEmiter.on("update user", ({ req, res }) => __awaiter(void 0, void 0, void 0,
 }));
 userEmiter.on("get pending requests sent", ({ req, res }) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        let contacts = yield users_1.default.findById(req.userId).populate({ path: "pendingContactsSent", select: "username _id" });
+        let contacts = yield users_1.default.findById(req.userId).populate({ path: "pendingContactsSent", select: "username _id profilePic" });
         res.status(http_status_codes_1.StatusCodes.OK).json(contacts === null || contacts === void 0 ? void 0 : contacts.pendingContactsSent);
     }
     catch (error) {
@@ -289,7 +291,7 @@ userEmiter.on("get pending requests sent", ({ req, res }) => __awaiter(void 0, v
 }));
 userEmiter.on("get pending requests received", ({ req, res }) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        let contacts = yield users_1.default.findById(req.userId).populate({ path: "pendingContactsReceived", select: "username _id" });
+        let contacts = yield users_1.default.findById(req.userId).populate({ path: "pendingContactsReceived", select: "username _id profilePic" });
         res.status(http_status_codes_1.StatusCodes.OK).json(contacts === null || contacts === void 0 ? void 0 : contacts.pendingContactsReceived);
     }
     catch (error) {
@@ -306,10 +308,30 @@ userEmiter.on("search user", ({ req, res }) => __awaiter(void 0, void 0, void 0,
         const regex = new RegExp(expression, "g");
         const result = yield users_1.default.find({
             _id: { $regex: regex }, isVerified: true
-        }).select({ username: 1 });
+        }).select({ username: 1, profilePic: 1 });
         res.status(http_status_codes_1.StatusCodes.OK).json(result);
     }
     catch (error) {
+        res.status(http_status_codes_1.StatusCodes.INTERNAL_SERVER_ERROR).send("server error");
+    }
+}));
+userEmiter.on("upload image", ({ req, res }) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const { error } = uploadImageSchema.validate(req.body);
+        if (error)
+            return res.status(http_status_codes_1.StatusCodes.BAD_REQUEST).send(error.message);
+        const { image } = req.body;
+        const imageObject = yield (0, images_1.uploadImage)(image, "profilePictures");
+        if (req.user.profilePic.public_id) {
+            yield (0, images_1.deleteImage)(req.user.profilePic.public_id);
+        }
+        yield req.user.updateOne({
+            $set: { profilePic: imageObject }
+        });
+        res.status(http_status_codes_1.StatusCodes.OK).json({ status: "success" });
+    }
+    catch (error) {
+        console.log(error);
         res.status(http_status_codes_1.StatusCodes.INTERNAL_SERVER_ERROR).send("server error");
     }
 }));

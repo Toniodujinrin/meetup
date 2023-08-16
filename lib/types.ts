@@ -26,7 +26,7 @@ interface RequestInterface extends Request{
     messages:ObjectId[]
     conversationPic:{
        url:string,
-       publicId:string
+       public_id:string
     },
     lastSeen:Number
  }
@@ -35,9 +35,15 @@ interface RequestInterface extends Request{
     conversationId:string,
     timeStamp:number, 
     status:string,
-    body:String 
+    body:String,
+    senderId:{type:String, ref:"User"},
+}
 
-
+interface MessageInterfacePopulated extends mongoose.Document{
+    timeStamp:number, 
+    status:string,
+    body:String,
+    senderId:UserInterface,
 }
 
 interface UserInterface extends mongoose.Document{
@@ -56,7 +62,7 @@ interface UserInterface extends mongoose.Document{
     registration:number,
     profilePic:{
         url:string, 
-        publicId:string
+        public_id:string
     },
     bio:string,
     conversations:string[],
@@ -64,4 +70,4 @@ interface UserInterface extends mongoose.Document{
     publicKey:string,
     keyPair:string
 }
-export {RequestInterface,ReqResPair, SocketInterface, ConversationInterface, MessageInterface, UserInterface}
+export {RequestInterface,ReqResPair, SocketInterface, ConversationInterface, MessageInterface, UserInterface, MessageInterfacePopulated}

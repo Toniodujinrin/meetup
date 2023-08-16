@@ -57,7 +57,7 @@ conversationEmiter.on("create conversation", ({ req, res }) => __awaiter(void 0,
             return res.status(http_status_codes_1.StatusCodes.BAD_REQUEST).send("all users must me be contacts");
         users.push(req.userId);
         const conversationExists = yield conversations_1.default.find({ users: { $all: users, $size: users.length } });
-        if (conversationExists)
+        if (conversationExists.length > 0)
             return res.status(http_status_codes_1.StatusCodes.BAD_REQUEST).send("conversation between users already exists");
         let conversation = new conversations_1.default({
             users,
@@ -151,7 +151,7 @@ conversationEmiter.on("get conversation", ({ req, res }) => __awaiter(void 0, vo
         const conversationId = req.params.conversationId;
         if (!req.user.conversations.includes(conversationId))
             return res.status(http_status_codes_1.StatusCodes.UNAUTHORIZED).send("you are not allowed to view this conversation");
-        let conversation = yield conversations_1.default.findById(conversationId).populate({ path: "users", select: "username _id lastSeen" });
+        let conversation = yield conversations_1.default.findById(conversationId).populate({ path: "users", select: "username _id lastSeen profilePic" });
         if (!conversation)
             return res.status(http_status_codes_1.StatusCodes.NOT_FOUND).send("conversation not found");
         let _conversation = lodash_1.default.pick(conversation, ["type", "users", "name", "created", "conversationPic", "lastSeen"]);
@@ -159,6 +159,7 @@ conversationEmiter.on("get conversation", ({ req, res }) => __awaiter(void 0, vo
             let otherUser = _conversation.users.filter((user) => user._id != req.userId)[0];
             _conversation.name = otherUser.username;
             _conversation.lastSeen = otherUser.lastSeen;
+            _conversation.conversationPic = otherUser.profilePic;
         }
         res.status(http_status_codes_1.StatusCodes.OK).json(_conversation);
     }

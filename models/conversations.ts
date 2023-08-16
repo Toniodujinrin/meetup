@@ -2,7 +2,6 @@ import Joi from "joi";
 import mongoose from "mongoose";
 import Message from "./message";
 import User from "./users";
-import { ObjectId } from "mongodb";
 import { Model } from "mongoose";
 import { ConversationInterface } from "../lib/types";
 
@@ -16,7 +15,7 @@ const conversationSchema = new mongoose.Schema<ConversationInterface,Model<Conve
    messages:[{type:mongoose.Schema.Types.ObjectId, ref:"Message"}],
    conversationPic:{
     url:{type:String},
-    publicId:{type:String}
+    public_id:{type:String}
    },
    lastSeen:{type:Number}
 })
@@ -38,7 +37,6 @@ const conversationSchemas = {
 }
 
 conversationSchema.post<ConversationInterface>("findOneAndDelete",async function(doc:ConversationInterface){
-
    try{
       Message.deleteMany({conversationId:doc._id})
       const proc = doc.users.map(async(user) => {
@@ -50,12 +48,10 @@ conversationSchema.post<ConversationInterface>("findOneAndDelete",async function
                conversations:filteredConversations,
                conversationKeys:filteredConversationKeys
             })
-           
-            await _user.save()
+           await _user.save()
          }
       });
       await Promise.all(proc)
-
    }
    catch (error){
      console.log(error)

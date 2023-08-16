@@ -22,7 +22,7 @@ conversationEmiter.on("create conversation", async ({req, res}:ReqResPair)=>{
         if(!Helpers.checkIfSubset(req.user.contacts, users)) return res.status(StatusCodes.BAD_REQUEST).send("all users must me be contacts") 
         users.push(req.userId)
         const conversationExists = await Conversation.find({users:{$all:users, $size:users.length}})
-        if(conversationExists) return res.status(StatusCodes.BAD_REQUEST).send("conversation between users already exists")
+        if(conversationExists.length > 0) return res.status(StatusCodes.BAD_REQUEST).send("conversation between users already exists")
         let conversation = new Conversation({
             users,
             name,
@@ -113,13 +113,14 @@ conversationEmiter.on("get conversation", async ({req,res}:ReqResPair)=>{
         if(error) return res.status(StatusCodes.BAD_REQUEST).send(error.message)
         const conversationId = req.params.conversationId
         if(!req.user.conversations.includes(conversationId)) return res.status(StatusCodes.UNAUTHORIZED).send("you are not allowed to view this conversation")
-        let conversation = await Conversation.findById(conversationId).populate<{users:UserInterface[]}>({path:"users", select:"username _id lastSeen"})
+        let conversation = await Conversation.findById(conversationId).populate<{users:UserInterface[]}>({path:"users", select:"username _id lastSeen profilePic"})
         if(!conversation) return res.status(StatusCodes.NOT_FOUND).send("conversation not found")
         let _conversation =  _.pick(conversation,["type","users","name","created","conversationPic","lastSeen"])
         if(_conversation.type == "single"){
             let  otherUser = _conversation.users.filter((user)=> user._id != req.userId)[0]
             _conversation.name = otherUser.username
             _conversation.lastSeen = otherUser.lastSeen
+            _conversation.conversationPic = otherUser.profilePic
         }
         res.status(StatusCodes.OK).json(_conversation)
     } catch (error) {

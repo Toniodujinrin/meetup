@@ -25,7 +25,7 @@ const conversationSchema = new mongoose_1.default.Schema({
     messages: [{ type: mongoose_1.default.Schema.Types.ObjectId, ref: "Message" }],
     conversationPic: {
         url: { type: String },
-        publicId: { type: String }
+        public_id: { type: String }
     },
     lastSeen: { type: Number }
 });

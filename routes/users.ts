@@ -28,14 +28,14 @@ router.get("/pending/received",authorization,restriction, (req,res)=>{
 router.get('/:email',  (req,res)=>{
     userEmiter.emit("get user",{params:req.params,res})
 })
+router.post("/uploadImage",authorization,restriction,(req,res)=>{
+    userEmiter.emit("upload image",{req,res})
+})
 router.post("/verifyAccount",authorization,(req,res)=>{
     userEmiter.emit("verify account",{req, res}) 
 })
 router.post("/verifyEmail", authorization,(req, res)=>{
     userEmiter.emit("verify email",{req, res})
-})
-router.post("/", (req,res)=>{
-    userEmiter.emit("create user", {req,res})
 })
 router.post("/add/:email",authorization, restriction, (req,res)=>{
     userEmiter.emit("add user",{req,res})
@@ -45,6 +45,9 @@ router.post("/resendOtp", authorization, (req, res)=>{
 })
 router.post("/accept/:email",authorization,restriction,(req,res)=>{
     userEmiter.emit("accept Request",{req,res})
+})
+router.post("/", (req,res)=>{
+    userEmiter.emit("create user", {req,res})
 })
 router.put("/", authorization, restriction, (req,res)=>{
     userEmiter.emit("update user", {req, res})

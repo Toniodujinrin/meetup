@@ -23,7 +23,7 @@ const usersSchema = new mongoose_1.default.Schema({
     registration: { default: Date.now(), type: Number },
     profilePic: {
         url: String,
-        publicId: String
+        public_id: String
     },
     bio: {
         type: String,
@@ -63,6 +63,9 @@ const userSchemas = {
         lastName: joi_1.default.string().min(2).max(50),
         phone: joi_1.default.string(),
         bio: joi_1.default.string()
+    }),
+    uploadImageSchema: joi_1.default.object({
+        image: joi_1.default.string().required()
     })
 };
 exports.userSchemas = userSchemas;

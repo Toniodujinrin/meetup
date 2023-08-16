@@ -3,6 +3,7 @@ import User from "../models/users"
 import Conversation from "../models/conversations"
 import Message from "../models/message"
 import _ from "lodash"
+import { MessageInterface, MessageInterfacePopulated } from "./types"
 
 
 class SocketLib{
@@ -79,9 +80,29 @@ class SocketLib{
         throw new Error("invalid user")
     }
 
-    static getPreviousMessages = async (conversationId:string|undefined)=>{
-        let previousMessages = await Conversation.findById(conversationId).populate({path:"messages", populate:{path:"senderId",select:"_id username"}}).select({messages:1})
-        if(previousMessages) return previousMessages.messages 
+    static getPreviousMessages = async (conversationId:string|undefined, socket:any )=>{
+        let previousMessages = await Conversation.findById(conversationId).populate<{messages:MessageInterface[]}>("messages")
+        if(previousMessages){
+            const messages = previousMessages.messages
+            if(messages.length > 0){
+                const lastMessage = messages[messages.length -1]
+                if(lastMessage.senderId !== socket.user ){
+                    const proc = messages.map(async message =>{
+                        if(message.status !== "read"){
+                        console.log(message)
+                        await Message.findByIdAndUpdate(message._id,{
+                            $set:{status:"read"}
+                        })
+                       }
+                    })
+                    await Promise.all(proc)
+                }
+            }
+            
+            
+            const updatedPreviousMessages = await Conversation.findById(conversationId).populate<{messages:MessageInterfacePopulated[]}>({path:"messages",populate:{path:"senderId",select:"_id username profilePic"}})
+            return updatedPreviousMessages?.messages 
+        } 
     }
 }
 

@@ -21,7 +21,7 @@ const usersSchema = new mongoose.Schema({
     registration:{default:Date.now(), type:Number},
     profilePic:{
         url:String, 
-        publicId:String
+        public_id:String
     },
     bio:{
        type:String, 
@@ -69,6 +69,9 @@ const userSchemas = {
         lastName:Joi.string().min(2).max(50), 
         phone:Joi.string(),
         bio:Joi.string()
+    }),
+    uploadImageSchema:Joi.object({
+        image:Joi.string().required()
     })
 }
 

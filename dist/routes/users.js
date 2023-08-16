@@ -31,14 +31,14 @@ router.get("/pending/received", authourization_1.default, restriction_1.default,
 router.get('/:email', (req, res) => {
     userEmiter.emit("get user", { params: req.params, res });
 });
+router.post("/uploadImage", authourization_1.default, restriction_1.default, (req, res) => {
+    userEmiter.emit("upload image", { req, res });
+});
 router.post("/verifyAccount", authourization_1.default, (req, res) => {
     userEmiter.emit("verify account", { req, res });
 });
 router.post("/verifyEmail", authourization_1.default, (req, res) => {
     userEmiter.emit("verify email", { req, res });
-});
-router.post("/", (req, res) => {
-    userEmiter.emit("create user", { req, res });
 });
 router.post("/add/:email", authourization_1.default, restriction_1.default, (req, res) => {
     userEmiter.emit("add user", { req, res });
@@ -48,6 +48,9 @@ router.post("/resendOtp", authourization_1.default, (req, res) => {
 });
 router.post("/accept/:email", authourization_1.default, restriction_1.default, (req, res) => {
     userEmiter.emit("accept Request", { req, res });
+});
+router.post("/", (req, res) => {
+    userEmiter.emit("create user", { req, res });
 });
 router.put("/", authourization_1.default, restriction_1.default, (req, res) => {
     userEmiter.emit("update user", { req, res });
