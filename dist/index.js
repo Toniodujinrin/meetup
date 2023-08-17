@@ -20,8 +20,8 @@ const app = (0, express_1.default)();
 const server = http_1.default.createServer(app);
 const io = new socket_io_1.Server(server, {
     cors: {
-        origin: ["https://meet-up-client.vercel.app/", "http://localhost:3000"],
-        credentials: true
+        origin: ["https://meet-up-client.vercel.app", "http://localhost:3000"],
+        credentials: true,
     }
 });
 (0, socket_1.default)(io);
