@@ -5,7 +5,7 @@ import conncectToDatabase from "./lib/mongoconnect"
 import Processes from "./lib/processes"
 import {Server} from "socket.io"
 import socketHandler from "./server/socket"
-
+import bodyParser from "body-parser"
 
 
 require("dotenv").config()
@@ -22,10 +22,12 @@ const server = http.createServer(app)
 
 const io = new Server(server,{
   cors:{
-    origin:`*`,
+    origin:['http://localhost:3000',"https://meet-up-client.vercel.app"],
     credentials: true
   }
 })
+
+
 
 socketHandler(io)
 
