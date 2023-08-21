@@ -11,7 +11,6 @@ const mongoconnect_1 = __importDefault(require("./lib/mongoconnect"));
 const processes_1 = __importDefault(require("./lib/processes"));
 const socket_io_1 = require("socket.io");
 const socket_1 = __importDefault(require("./server/socket"));
-const fs_1 = __importDefault(require("fs"));
 require("dotenv").config();
 processes_1.default.envChecker();
 (0, mongoconnect_1.default)();
@@ -21,8 +20,8 @@ const app = (0, express_1.default)();
 (0, startup_1.default)(app);
 const server = http_1.default.createServer(app);
 const httpsServer = https_1.default.createServer({
-    key: fs_1.default.readFileSync("./cert/server.key", "utf-8"),
-    cert: fs_1.default.readFileSync("./cert/server.cert", "utf-8"),
+    key: process.env.SERVER_KEY,
+    cert: process.env.SERVER_CERT,
     requestCert: true,
     rejectUnauthorized: false
 }, app);

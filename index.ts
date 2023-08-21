@@ -22,8 +22,8 @@ startup(app)
 
 const server = http.createServer(app)
 const httpsServer = https.createServer({
-  key:fs.readFileSync("./cert/server.key","utf-8"),
-  cert:fs.readFileSync("./cert/server.cert","utf-8"),
+  key:process.env.SERVER_KEY,
+  cert:process.env.SERVER_CERT,
   requestCert:true,
   rejectUnauthorized:false
 
