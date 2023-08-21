@@ -18,7 +18,7 @@ const startup = (app:Express)=>{
           parameterLimit: 50000,
         })
     );
-    app.use(express.json())
+    
     app.use("/api/users",users)
     app.use("/api/auth", auth)
     app.use("/api/conversations",conversations)

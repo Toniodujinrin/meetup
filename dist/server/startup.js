@@ -20,7 +20,6 @@ const startup = (app) => {
         extended: true,
         parameterLimit: 50000,
     }));
-    app.use(express_1.default.json());
     app.use("/api/users", users_1.default);
     app.use("/api/auth", auth_1.default);
     app.use("/api/conversations", conversations_1.default);

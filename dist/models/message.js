@@ -16,7 +16,7 @@ const mongoose_1 = __importDefault(require("mongoose"));
 const conversations_1 = __importDefault(require("./conversations"));
 const messageSchema = new mongoose_1.default.Schema({
     conversationId: { type: String, required: true },
-    timeStamp: { type: Number, default: Date.now() },
+    timeStamp: { type: Number, default: Date.now },
     expiry: { type: Number, default: Date.now() + 86400000 },
     status: { type: String, default: "delivered", enum: ["read", "delivered"] },
     senderId: { type: String, ref: "User" },

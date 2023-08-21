@@ -51,6 +51,14 @@ const socketHandler = (io:Server)=>{
         }
         })
 
+        socket.on("typing",({conversationId})=>{
+            io.to(conversationId).emit("typing",socket.user)
+        })
+
+        socket.on("finished typing",({conversationId})=>{
+            io.to(conversationId).emit("finished typing",socket.user)
+        })
+
         socket.on("disconnecting", async ()=>{
             try {
                 

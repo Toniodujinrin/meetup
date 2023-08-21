@@ -55,6 +55,12 @@ const socketHandler = (io) => {
                 socket.emit("conn_error", error);
             }
         }));
+        socket.on("typing", ({ conversationId }) => {
+            io.to(conversationId).emit("typing", socket.user);
+        });
+        socket.on("finished typing", ({ conversationId }) => {
+            io.to(conversationId).emit("finished typing", socket.user);
+        });
         socket.on("disconnecting", () => __awaiter(void 0, void 0, void 0, function* () {
             try {
                 yield socket_1.default.leaveAllRooms(socket, io);

@@ -1,11 +1,13 @@
 import express from "express"
 import http from "http"
+import https from "https"
 import startup from "./server/startup"
 import conncectToDatabase from "./lib/mongoconnect"
 import Processes from "./lib/processes"
 import {Server} from "socket.io"
 import socketHandler from "./server/socket"
-import bodyParser from "body-parser"
+import fs from "fs"
+
 
 
 require("dotenv").config()
@@ -19,8 +21,15 @@ startup(app)
 
 
 const server = http.createServer(app)
+const httpsServer = https.createServer({
+  key:fs.readFileSync("./cert/server.key","utf-8"),
+  cert:fs.readFileSync("./cert/server.cert","utf-8"),
+  requestCert:true,
+  rejectUnauthorized:false
 
-const io = new Server(server,{
+},app)
+
+const io = new Server(httpsServer,{
   cors:{
     
     origin:["https://meet-up-client.vercel.app:443","http://localhost:3000"],
@@ -35,6 +44,9 @@ const io = new Server(server,{
 socketHandler(io)
 
 
+httpsServer.listen(process.env.HTTPS,()=>{
+  console.log("\x1b[32m%s\x1b[0m",`[o] https server listening on port ${process.env.HTTPS}`)
+})
 
 server.listen(process.env.PORT,()=>{
   console.log("\x1b[32m%s\x1b[0m",`[o] server listening on port ${process.env.PORT}`)
