@@ -10,7 +10,7 @@ const uploadImage = async (image:string,folder:string)=>{
             api_secret:process.env.CLOUDINARY_API_SECRET,
             secure:true
         })
-        const {public_id, url}  = await cloudinary.v2.uploader.upload(image, {folder:folder})
+        const {public_id, secure_url:url}  = await cloudinary.v2.uploader.upload(image, {folder:folder})
         return {public_id,url}
 }
 
