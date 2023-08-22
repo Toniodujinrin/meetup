@@ -21,7 +21,7 @@ const uploadImage = (image, folder) => __awaiter(void 0, void 0, void 0, functio
         api_secret: process.env.CLOUDINARY_API_SECRET,
         secure: true
     });
-    const { public_id, url } = yield cloudinary_1.default.v2.uploader.upload(image, { folder: folder });
+    const { public_id, secure_url: url } = yield cloudinary_1.default.v2.uploader.upload(image, { folder: folder });
     return { public_id, url };
 });
 exports.uploadImage = uploadImage;
