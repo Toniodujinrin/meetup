@@ -33,6 +33,7 @@ const socketHandler = (io:Server)=>{
           try {
             await SocketLib.leaveRoom(socket,io,conversationId)
           } catch (error) {
+            console.log(error)
             socket.emit("conn_error",error)
           }
         })
@@ -47,6 +48,7 @@ const socketHandler = (io:Server)=>{
         try {
             await SocketLib.sendMessage(io,body,conversationId, socket.user)
         } catch (error) {
+            console.log(error)
             socket.emit("conn_error",error)
         }
         })
@@ -65,6 +67,7 @@ const socketHandler = (io:Server)=>{
                 await SocketLib.leaveAllRooms(socket, io)
                 await SocketLib.updateLastSeen(socket.user)
             } catch (error) {
+                console.log(error)
                 socket.emit("conn_error",error)
             }
         })
