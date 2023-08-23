@@ -40,6 +40,7 @@ const socketHandler = (io) => {
                 yield socket_1.default.leaveRoom(socket, io, conversationId);
             }
             catch (error) {
+                console.log(error);
                 socket.emit("conn_error", error);
             }
         }));
@@ -52,6 +53,7 @@ const socketHandler = (io) => {
                 yield socket_1.default.sendMessage(io, body, conversationId, socket.user);
             }
             catch (error) {
+                console.log(error);
                 socket.emit("conn_error", error);
             }
         }));
@@ -67,6 +69,7 @@ const socketHandler = (io) => {
                 yield socket_1.default.updateLastSeen(socket.user);
             }
             catch (error) {
+                console.log(error);
                 socket.emit("conn_error", error);
             }
         }));
