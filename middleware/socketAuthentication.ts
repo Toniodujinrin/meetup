@@ -5,6 +5,7 @@ import { ExtendedError } from "socket.io/dist/namespace";
 
 
 const authorization = async (socket:any,next:(err?: ExtendedError | undefined) => void)=>{
+    console.log(socket)
     let token = socket.handshake.auth.token 
     const key = process.env.KEY
     if(token && typeof key =="string"){
