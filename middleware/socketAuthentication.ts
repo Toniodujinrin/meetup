@@ -5,14 +5,17 @@ import { ExtendedError } from "socket.io/dist/namespace";
 
 
 const authorization = async (socket:any,next:(err?: ExtendedError | undefined) => void)=>{
-    console.log(socket)
+    
     let token = socket.handshake.auth.token 
     const key = process.env.KEY
+    console.log(token, typeof token)
     if(token && typeof key =="string"){
       try{
         token = token.replace("Bearer","").trim()
         const payload:any = jwt.verify(token,key)
+        console.log(payload)
         const user = await User.findById(payload._id)
+        console.log(user, user?.isVerified)
         if(user && user.isVerified){
             socket.user = user._id
             next()
@@ -20,6 +23,7 @@ const authorization = async (socket:any,next:(err?: ExtendedError | undefined) =
         else return socket.emit("conn_error",new Error("not authorized"))
       }
       catch(err){
+        console.log(err)
        
         socket.emit("conn_error",new Error("server error"))
       }
