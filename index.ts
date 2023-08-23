@@ -33,7 +33,7 @@ const httpsServer = https.createServer({
 const io = new Server(httpsServer,{
   cors:{
     
-    origin:["https://meet-up-client.vercel.app", "http://localhost:3000"],
+    origin:["https://meet-up-client.vercel.app:443", "http://localhost:3000"],
     methods:["GET","POST"],
     credentials: true,
   },
