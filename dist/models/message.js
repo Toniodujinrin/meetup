@@ -44,10 +44,9 @@ messageSchema.pre("deleteMany", function (next) {
             const conversation = yield conversations_1.default.findById(conversationId);
             if (conversation) {
                 const newMessages = conversation.messages.filter(message => message !== messageId);
-                conversation.set({
+                yield conversation.updateOne({
                     messages: newMessages
                 });
-                yield conversation.save();
             }
         }
         catch (error) {

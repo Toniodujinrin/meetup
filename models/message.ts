@@ -33,11 +33,12 @@ messageSchema.pre<MessageInterface>("deleteMany",async function(next){
        const conversation = await Conversation.findById(conversationId)
        if(conversation){
         const newMessages= conversation.messages.filter(message => message !== messageId)
-        conversation.set({
-            messages:newMessages
-        })
-        await conversation.save()
-        }
+        await conversation.updateOne(
+            {
+                messages:newMessages
+            }
+        )
+    }
     }
     catch(error){
         next()

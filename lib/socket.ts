@@ -12,6 +12,13 @@ class SocketLib{
         const ids = clients.map((client:any) =>{return client.user})
         return ids
     }
+
+    static getAllSocketsInRoomWithIds = async(io:Server , room:string)=>{
+        const clients = await io.in(room).fetchSockets()
+        const ids = clients.map((client:any) =>{return {userId:client.user, socketId:client.id}})
+        return ids
+    }
+
     
     static leaveAllRooms = async (socket:any, io:Server)=>{
         for  (let room of socket.rooms){
@@ -36,6 +43,13 @@ class SocketLib{
         const ids = client.map((client:any)=> {return client.user})
         return ids
     }
+
+    static getSocketIdFromUserId = async (io:Server, userId:string)=>{
+        const client = await io.fetchSockets()
+        let socketId
+        client.map((client:any)=> { if (client.user ==userId )socketId = client.id })
+        return socketId
+    }
     
     //room for optimization
     static getAllOnlineContacts = async (userId:string|undefined, io:Server)=>{
@@ -54,14 +68,52 @@ class SocketLib{
     }
 
     static sendMessage = async (io:Server,body:string,conversationId:string,senderId:string|undefined  )=>{
+        const conversation = await Conversation.findById(conversationId)
+        if(!conversation) throw new Error("conversation not found")
+        
         let message =  new Message({
             conversationId,
             body,
             senderId
-         })
-          message = await message.save()
-          const msg = await Message.findById(message._id).populate({path:"senderId", select:"_id username"})
-           io.to(conversationId).emit("new_message",msg)
+        })
+        message = await message.save()
+        const msg = await Message.findById(message._id).populate({path:"senderId", select:"_id username profilePic"})
+        io.to(conversationId).emit("new_message",msg)
+
+        // send notification to all offline users
+
+
+        const onlineSockets = await this.getAllSocketsInRoom(io,conversationId)
+        const users = conversation.users
+        const proc = users.map( async user=>{
+            if (!onlineSockets.includes(user)){
+                const usr = await User.findById(user)
+                if(!usr) throw new Error("user not found")
+                if(!usr.notifications) usr.notifications = []
+                const notificationExists = usr.notifications.find(notification => notification.conversationId == conversationId)
+                if (notificationExists){
+                    usr.notifications.map(notification =>{
+                        if (notification.conversationId == conversationId && notification.amount){
+                            notification.amount += 1 
+                            notification.timeStamp = Date.now()
+                        }
+                    })
+                }
+                else usr.notifications.unshift({conversationId, amount:1, timeStamp:Date.now()})
+                usr.notifications.sort((n1,n2)=> (n1.timeStamp && n2.timeStamp)?  n2.timeStamp - n1.timeStamp:0 )
+                await usr.updateOne({
+                    notifications:usr.notifications
+                })
+                const socketId = await this.getSocketIdFromUserId(io,user)
+                
+                if(socketId) io.to(socketId).emit("new_notification",usr.notifications)
+            }
+        
+        }
+        )
+        await Promise.all(proc)
+      
+
     }
 
     static updateLastSeen = async(email:string|undefined)=>{
@@ -103,6 +155,18 @@ class SocketLib{
             return updatedPreviousMessages?.messages 
         } 
     }
+
+
+    static clearNotifications = async(conversationId:string, socket:any)=>{
+        const user = await User.findById(socket.user)
+        if(!user) throw new Error("user not found")
+        const notifications = user.notifications.filter(notification => notification.conversationId !== conversationId)
+        await user.updateOne({notifications})
+        socket.emit("notification",notifications)
+    }
+
+
+  
 }
 
 export default SocketLib

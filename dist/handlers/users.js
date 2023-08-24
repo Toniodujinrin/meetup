@@ -189,22 +189,32 @@ userEmiter.on("resend otp", ({ req, res }) => __awaiter(void 0, void 0, void 0, 
 }));
 userEmiter.on("get conversations", ({ req, res }) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const response = yield users_1.default.findById(req.userId).populate("conversations");
-        if (response) {
-            let editedConversations = response.conversations.map((conversation) => __awaiter(void 0, void 0, void 0, function* () {
-                if (conversation.type == "single") {
-                    let otherUser = conversation.users.filter((user) => user != req.userId)[0];
-                    otherUser = yield users_1.default.findById(otherUser);
-                    conversation.name = otherUser.username;
-                    conversation.conversationPic = otherUser.profilePic;
-                }
-                return conversation;
-            }));
-            const result = yield Promise.all(editedConversations);
-            res.status(http_status_codes_1.StatusCodes.OK).json(result);
-        }
+        const response = yield users_1.default.findById(req.userId).populate({ path: "conversations", populate: { path: "messages" } });
+        if (!response)
+            return res.status(http_status_codes_1.StatusCodes.NOT_FOUND);
+        let editedConversations = response.conversations.map((conversation) => __awaiter(void 0, void 0, void 0, function* () {
+            let _conversation = {};
+            if (conversation.type == "single") {
+                let otherUser = conversation.users.filter((user) => user != req.userId)[0];
+                otherUser = yield users_1.default.findById(otherUser);
+                _conversation.name = otherUser.username;
+                _conversation.conversationPic = otherUser.profilePic;
+            }
+            else {
+                _conversation.name = conversation.name;
+                _conversation.conversationPic = conversation.conversationPic;
+            }
+            _conversation._id = conversation._id;
+            _conversation.users = conversation.users;
+            _conversation.lastMessage = conversation.messages.length > 0 ? conversation.messages[conversation.messages.length - 1] : null;
+            return _conversation;
+        }));
+        const result = yield Promise.all(editedConversations);
+        result.sort((r1, r2) => (r1.lastMessage && r2.lastMessage) ? r2.lastMessage.timeStamp - r1.lastMessage.timeStamp : 0);
+        res.status(http_status_codes_1.StatusCodes.OK).json(result);
     }
     catch (error) {
+        console.log(error);
         res.status(http_status_codes_1.StatusCodes.INTERNAL_SERVER_ERROR).send("server error");
     }
 }));

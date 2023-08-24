@@ -1,6 +1,7 @@
 import { Server, Socket } from "socket.io"
 import authorization from "../middleware/socketAuthentication"
 import SocketLib from "../lib/socket"
+import User from "../models/users"
 import { SocketInterface } from "../lib/types"
 
 
@@ -12,6 +13,8 @@ const socketHandler = (io:Server)=>{
     io.on("connection",async(socket: SocketInterface)=>{
         console.log("user connected", socket.user)
         const onlineContacts = await SocketLib.getAllOnlineContacts(socket.user,io)
+        const user = await User.findById(socket.user)
+        socket.emit("notification", user?.notifications)
         socket.emit("onlineContacts",onlineContacts)
         
         socket.on("join",async ({conversationId})=>{
@@ -19,6 +22,7 @@ const socketHandler = (io:Server)=>{
                 const groupKey = await SocketLib.getUserGroupKey(socket.user,conversationId)
                 socket.emit("groupKey",groupKey)
                 socket.join(conversationId)
+                await SocketLib.clearNotifications(conversationId,socket)
                 const previousMessages = await SocketLib.getPreviousMessages(conversationId, socket)
                 io.to(conversationId).emit("previousMessages",previousMessages)
                 const onlineUsers = await SocketLib.getAllSocketsInRoom(io, conversationId)

@@ -24,6 +24,11 @@ SocketLib.getAllSocketsInRoom = (io, room) => __awaiter(void 0, void 0, void 0, 
     const ids = clients.map((client) => { return client.user; });
     return ids;
 });
+SocketLib.getAllSocketsInRoomWithIds = (io, room) => __awaiter(void 0, void 0, void 0, function* () {
+    const clients = yield io.in(room).fetchSockets();
+    const ids = clients.map((client) => { return { userId: client.user, socketId: client.id }; });
+    return ids;
+});
 SocketLib.leaveAllRooms = (socket, io) => __awaiter(void 0, void 0, void 0, function* () {
     for (let room of socket.rooms) {
         if (room !== socket.id) {
@@ -43,6 +48,13 @@ SocketLib.getAllSockets = (io) => __awaiter(void 0, void 0, void 0, function* ()
     const ids = client.map((client) => { return client.user; });
     return ids;
 });
+SocketLib.getSocketIdFromUserId = (io, userId) => __awaiter(void 0, void 0, void 0, function* () {
+    const client = yield io.fetchSockets();
+    let socketId;
+    client.map((client) => { if (client.user == userId)
+        socketId = client.id; });
+    return socketId;
+});
 //room for optimization
 SocketLib.getAllOnlineContacts = (userId, io) => __awaiter(void 0, void 0, void 0, function* () {
     const user = yield users_1.default.findById(userId);
@@ -59,14 +71,48 @@ SocketLib.getAllOnlineContacts = (userId, io) => __awaiter(void 0, void 0, void 
     return onlineContacts;
 });
 SocketLib.sendMessage = (io, body, conversationId, senderId) => __awaiter(void 0, void 0, void 0, function* () {
+    const conversation = yield conversations_1.default.findById(conversationId);
+    if (!conversation)
+        throw new Error("conversation not found");
     let message = new message_1.default({
         conversationId,
         body,
         senderId
     });
     message = yield message.save();
-    const msg = yield message_1.default.findById(message._id).populate({ path: "senderId", select: "_id username" });
+    const msg = yield message_1.default.findById(message._id).populate({ path: "senderId", select: "_id username profilePic" });
     io.to(conversationId).emit("new_message", msg);
+    // send notification to all offline users
+    const onlineSockets = yield _a.getAllSocketsInRoom(io, conversationId);
+    const users = conversation.users;
+    const proc = users.map((user) => __awaiter(void 0, void 0, void 0, function* () {
+        if (!onlineSockets.includes(user)) {
+            const usr = yield users_1.default.findById(user);
+            if (!usr)
+                throw new Error("user not found");
+            if (!usr.notifications)
+                usr.notifications = [];
+            const notificationExists = usr.notifications.find(notification => notification.conversationId == conversationId);
+            if (notificationExists) {
+                usr.notifications.map(notification => {
+                    if (notification.conversationId == conversationId && notification.amount) {
+                        notification.amount += 1;
+                        notification.timeStamp = Date.now();
+                    }
+                });
+            }
+            else
+                usr.notifications.unshift({ conversationId, amount: 1, timeStamp: Date.now() });
+            usr.notifications.sort((n1, n2) => (n1.timeStamp && n2.timeStamp) ? n2.timeStamp - n1.timeStamp : 0);
+            yield usr.updateOne({
+                notifications: usr.notifications
+            });
+            const socketId = yield _a.getSocketIdFromUserId(io, user);
+            if (socketId)
+                io.to(socketId).emit("new_notification", usr.notifications);
+        }
+    }));
+    yield Promise.all(proc);
 });
 SocketLib.updateLastSeen = (email) => __awaiter(void 0, void 0, void 0, function* () {
     yield users_1.default.findByIdAndUpdate(email, {
@@ -103,5 +149,13 @@ SocketLib.getPreviousMessages = (conversationId, socket) => __awaiter(void 0, vo
         const updatedPreviousMessages = yield conversations_1.default.findById(conversationId).populate({ path: "messages", populate: { path: "senderId", select: "_id username profilePic" } });
         return updatedPreviousMessages === null || updatedPreviousMessages === void 0 ? void 0 : updatedPreviousMessages.messages;
     }
+});
+SocketLib.clearNotifications = (conversationId, socket) => __awaiter(void 0, void 0, void 0, function* () {
+    const user = yield users_1.default.findById(socket.user);
+    if (!user)
+        throw new Error("user not found");
+    const notifications = user.notifications.filter(notification => notification.conversationId !== conversationId);
+    yield user.updateOne({ notifications });
+    socket.emit("notification", notifications);
 });
 exports.default = SocketLib;

@@ -31,7 +31,8 @@ const usersSchema = new mongoose.Schema({
     conversations:[{type:mongoose.Schema.Types.ObjectId, ref:"Conversation"}],
     conversationKeys:[{conversationId:String, groupKey:String}],
     publicKey:{type:String},
-    keyPair:{type:String}
+    keyPair:{type:String},
+    notifications:[{conversationId:String,amount:Number,timeStamp:Number}]
 })
 
 

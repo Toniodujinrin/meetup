@@ -33,7 +33,8 @@ const usersSchema = new mongoose_1.default.Schema({
     conversations: [{ type: mongoose_1.default.Schema.Types.ObjectId, ref: "Conversation" }],
     conversationKeys: [{ conversationId: String, groupKey: String }],
     publicKey: { type: String },
-    keyPair: { type: String }
+    keyPair: { type: String },
+    notifications: [{ conversationId: String, amount: Number, timeStamp: Number }]
 });
 const User = mongoose_1.default.model("User", usersSchema, "users");
 const userSchemas = {

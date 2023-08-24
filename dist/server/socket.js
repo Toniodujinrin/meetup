@@ -14,17 +14,21 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const socketAuthentication_1 = __importDefault(require("../middleware/socketAuthentication"));
 const socket_1 = __importDefault(require("../lib/socket"));
+const users_1 = __importDefault(require("../models/users"));
 const socketHandler = (io) => {
     io.use(socketAuthentication_1.default);
     io.on("connection", (socket) => __awaiter(void 0, void 0, void 0, function* () {
         console.log("user connected", socket.user);
         const onlineContacts = yield socket_1.default.getAllOnlineContacts(socket.user, io);
+        const user = yield users_1.default.findById(socket.user);
+        socket.emit("notification", user === null || user === void 0 ? void 0 : user.notifications);
         socket.emit("onlineContacts", onlineContacts);
         socket.on("join", ({ conversationId }) => __awaiter(void 0, void 0, void 0, function* () {
             try {
                 const groupKey = yield socket_1.default.getUserGroupKey(socket.user, conversationId);
                 socket.emit("groupKey", groupKey);
                 socket.join(conversationId);
+                yield socket_1.default.clearNotifications(conversationId, socket);
                 const previousMessages = yield socket_1.default.getPreviousMessages(conversationId, socket);
                 io.to(conversationId).emit("previousMessages", previousMessages);
                 const onlineUsers = yield socket_1.default.getAllSocketsInRoom(io, conversationId);

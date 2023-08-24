@@ -4,9 +4,10 @@ import OTP from "../models/otps";
 import Encryption from "../lib/encryption";
 import { StatusCodes } from "http-status-codes";
 import Helpers from "../lib/helpers"
-import {ReqResPair } from "../lib/types";
+import {MessageInterface, ReqResPair } from "../lib/types";
 import _ from "lodash"
 import { deleteImage, uploadImage } from "../lib/images";
+import { populate } from "dotenv";
 
 
 const {userEmiter}= emiter
@@ -149,28 +150,44 @@ userEmiter.on("resend otp", async({req, res}:ReqResPair )=>{
         else return res.status(StatusCodes.INTERNAL_SERVER_ERROR).send("server error")
     }
     catch(err){
+        
         res.status(StatusCodes.INTERNAL_SERVER_ERROR).send("server error ")
+        
     }
 })
 
 userEmiter.on("get conversations", async({req,res}:ReqResPair)=>{
     try{
-        const response = await User.findById(req.userId).populate("conversations")
-        if(response){
-            let editedConversations = response.conversations.map(async (conversation:any) =>{
+        const response = await User.findById(req.userId).populate({path:"conversations", populate:{path:"messages"}})
+        if(!response) return res.status(StatusCodes.NOT_FOUND)
+        let editedConversations = response.conversations.map(async (conversation:any) =>{
+                let _conversation:{name?:string, conversationPic?:{url:string, public_id:string}, lastMessage?:MessageInterface, _id?:string, users?:string[], type?:string} = {}
                 if(conversation.type == "single"){
                     let  otherUser = conversation.users.filter((user:string)=> user != req.userId)[0]
                     otherUser = await User.findById(otherUser)
-                    conversation.name = otherUser.username 
-                    conversation.conversationPic = otherUser.profilePic
+                    _conversation.name = otherUser.username 
+                    _conversation.conversationPic = otherUser.profilePic
                 }
-                return conversation
-            })
-            const result = await Promise.all(editedConversations)
-            res.status(StatusCodes.OK).json(result)
-        }
+                else{
+                    _conversation.name = conversation.name
+                    _conversation.conversationPic = conversation.conversationPic
+                }
+                _conversation._id = conversation._id
+                _conversation.users = conversation.users
+                _conversation.lastMessage = conversation.messages.length > 0?conversation.messages[conversation.messages.length - 1]:null
+                
+                 
+               
+                return _conversation
+        })
+
+        const result = await Promise.all(editedConversations)
+        result.sort((r1,r2) => (r1.lastMessage && r2.lastMessage)? r2.lastMessage.timeStamp - r1.lastMessage.timeStamp : 0)
+        res.status(StatusCodes.OK).json(result)
     }
+    
     catch (error){
+        console.log(error)
         res.status(StatusCodes.INTERNAL_SERVER_ERROR).send("server error")
     }
 })
