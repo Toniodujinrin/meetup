@@ -204,6 +204,7 @@ userEmiter.on("get conversations", ({ req, res }) => __awaiter(void 0, void 0, v
                 _conversation.name = conversation.name;
                 _conversation.conversationPic = conversation.conversationPic;
             }
+            _conversation.type = conversation.type;
             _conversation._id = conversation._id;
             _conversation.users = conversation.users;
             _conversation.lastMessage = conversation.messages.length > 0 ? conversation.messages[conversation.messages.length - 1] : null;
