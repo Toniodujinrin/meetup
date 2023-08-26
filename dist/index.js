@@ -16,6 +16,7 @@ processes_1.default.envChecker();
 (0, mongoconnect_1.default)();
 // Processes.otpProcess()
 processes_1.default.messageProcess();
+processes_1.default.conversationProcess();
 const app = (0, express_1.default)();
 (0, startup_1.default)(app);
 const server = http_1.default.createServer(app);
@@ -38,5 +39,5 @@ httpsServer.listen(process.env.HTTPS, () => {
     console.log("\x1b[32m%s\x1b[0m", `[o] https server listening on port ${process.env.HTTPS}`);
 });
 server.listen(process.env.PORT, () => {
-    console.log("\x1b[32m%s\x1b[0m", `[o] server listening on port ${process.env.PORT}`);
+    console.log("\x1b[32m%s\x1b[0m", `[o] http server listening on port ${process.env.PORT}`);
 });

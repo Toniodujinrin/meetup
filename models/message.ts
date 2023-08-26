@@ -26,24 +26,7 @@ messageSchema.post<MessageInterface>("save", async function(doc){
     }
 })
 
-messageSchema.pre<MessageInterface>("deleteMany",async function(next){
-    try{
-       const messageId = this._id
-       const conversationId = this.conversationId
-       const conversation = await Conversation.findById(conversationId)
-       if(conversation){
-        const newMessages= conversation.messages.filter(message => message !== messageId)
-        await conversation.updateOne(
-            {
-                messages:newMessages
-            }
-        )
-    }
-    }
-    catch(error){
-        next()
-    }
-})
+
 const Message = mongoose.model("Message",messageSchema)
 
 

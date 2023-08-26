@@ -12,10 +12,11 @@ import socketHandler from "./server/socket"
 
 require("dotenv").config()
 Processes.envChecker()
+
 conncectToDatabase()
 // Processes.otpProcess()
 Processes.messageProcess()
-
+Processes.conversationProcess()
 const app = express()
 startup(app)
 
@@ -50,5 +51,5 @@ httpsServer.listen(process.env.HTTPS,()=>{
 })
 
 server.listen(process.env.PORT,()=>{
-  console.log("\x1b[32m%s\x1b[0m",`[o] server listening on port ${process.env.PORT}`)
+  console.log("\x1b[32m%s\x1b[0m",`[o] http server listening on port ${process.env.PORT}`)
 })

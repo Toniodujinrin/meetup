@@ -14,6 +14,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 var _a;
 Object.defineProperty(exports, "__esModule", { value: true });
 const message_1 = __importDefault(require("../models/message"));
+const conversations_1 = __importDefault(require("../models/conversations"));
 const otps_1 = __importDefault(require("../models/otps"));
 class Processes {
 }
@@ -32,16 +33,36 @@ Processes.envChecker = () => {
     }
     console.log("\x1b[32m%s\x1b[0m", "[o] All environment variables available ...");
 };
-Processes.otpProcess = () => __awaiter(void 0, void 0, void 0, function* () {
+Processes.otpProcess = () => {
     console.log("\x1b[33m%s\x1b[0m", "[+] OTP process started ...");
     setInterval(() => __awaiter(void 0, void 0, void 0, function* () {
         yield otps_1.default.deleteMany({ expiry: { $lt: Date.now() } });
     }), 10000);
-});
-Processes.messageProcess = () => __awaiter(void 0, void 0, void 0, function* () {
+};
+Processes.messageProcess = () => {
     console.log("\x1b[33m%s\x1b[0m", "[+] Message process started ...");
     setInterval(() => __awaiter(void 0, void 0, void 0, function* () {
         yield message_1.default.deleteMany({ expiry: { $lt: Date.now() } });
     }), 10000);
-});
+};
+Processes.conversationProcess = () => {
+    console.log("\x1b[33m%s\x1b[0m", "[+] Conversation process started ...");
+    setInterval(() => __awaiter(void 0, void 0, void 0, function* () {
+        const conversations = yield conversations_1.default.find({ "messages.0": { $exists: true } });
+        if (conversations) {
+            const conversationProcess = conversations.map((conversation) => __awaiter(void 0, void 0, void 0, function* () {
+                const obsoleteMessages = [];
+                const findObsoleteMessagesProcess = conversation.messages.map((message) => __awaiter(void 0, void 0, void 0, function* () {
+                    if (!(yield message_1.default.findById(message))) {
+                        obsoleteMessages.push(message);
+                    }
+                }));
+                yield Promise.all(findObsoleteMessagesProcess);
+                const filteredConversationMessages = conversation.messages.filter(message => !obsoleteMessages.includes(message));
+                yield conversations_1.default.updateOne({ _id: conversation._id }, { $set: { messages: filteredConversationMessages } });
+            }));
+            yield Promise.all(conversationProcess);
+        }
+    }), (1000 * 60 * 5));
+};
 exports.default = Processes;

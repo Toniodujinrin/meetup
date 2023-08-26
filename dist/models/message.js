@@ -36,23 +36,5 @@ messageSchema.post("save", function (doc) {
         }
     });
 });
-messageSchema.pre("deleteMany", function (next) {
-    return __awaiter(this, void 0, void 0, function* () {
-        try {
-            const messageId = this._id;
-            const conversationId = this.conversationId;
-            const conversation = yield conversations_1.default.findById(conversationId);
-            if (conversation) {
-                const newMessages = conversation.messages.filter(message => message !== messageId);
-                yield conversation.updateOne({
-                    messages: newMessages
-                });
-            }
-        }
-        catch (error) {
-            next();
-        }
-    });
-});
 const Message = mongoose_1.default.model("Message", messageSchema);
 exports.default = Message;
