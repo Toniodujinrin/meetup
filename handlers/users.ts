@@ -182,8 +182,12 @@ userEmiter.on("get conversations", async({req,res}:ReqResPair)=>{
                 return _conversation
         })
 
-        const result = await Promise.all(editedConversations)
-        result.sort((r1,r2) => (r1.lastMessage && r2.lastMessage)? r2.lastMessage.timeStamp - r1.lastMessage.timeStamp : 0)
+        let result = await Promise.all(editedConversations)
+        //make improvements for conversations with no messages 
+        const resultWithMessages = result.filter(message => message.lastMessage)
+        resultWithMessages.sort((r1,r2) => (r1.lastMessage && r2.lastMessage)? r2.lastMessage.timeStamp - r1.lastMessage.timeStamp : 0)
+        const resultWithoutMessages = result.filter(message => !message.lastMessage)
+        result = [...resultWithMessages,...resultWithoutMessages]
         res.status(StatusCodes.OK).json(result)
     }
     

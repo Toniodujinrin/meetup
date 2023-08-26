@@ -210,8 +210,12 @@ userEmiter.on("get conversations", ({ req, res }) => __awaiter(void 0, void 0, v
             _conversation.lastMessage = conversation.messages.length > 0 ? conversation.messages[conversation.messages.length - 1] : null;
             return _conversation;
         }));
-        const result = yield Promise.all(editedConversations);
-        result.sort((r1, r2) => (r1.lastMessage && r2.lastMessage) ? r2.lastMessage.timeStamp - r1.lastMessage.timeStamp : 0);
+        let result = yield Promise.all(editedConversations);
+        //make improvements for conversations with no messages 
+        const resultWithMessages = result.filter(message => message.lastMessage);
+        resultWithMessages.sort((r1, r2) => (r1.lastMessage && r2.lastMessage) ? r2.lastMessage.timeStamp - r1.lastMessage.timeStamp : 0);
+        const resultWithoutMessages = result.filter(message => !message.lastMessage);
+        result = [...resultWithMessages, ...resultWithoutMessages];
         res.status(http_status_codes_1.StatusCodes.OK).json(result);
     }
     catch (error) {
