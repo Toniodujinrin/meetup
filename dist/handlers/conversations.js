@@ -53,6 +53,8 @@ conversationEmiter.on("create conversation", ({ req, res }) => __awaiter(void 0,
         const { users, name, type } = req.body;
         if (users.length > 1 && type == "single")
             return res.status(http_status_codes_1.StatusCodes.BAD_REQUEST).send("single conversations can only have 2 users");
+        if (users.length == 1 && type == "group")
+            return res.status(http_status_codes_1.StatusCodes.BAD_REQUEST).send("group conversations must have more than 2 users");
         if (!helpers_1.default.checkIfSubset(req.user.contacts, users))
             return res.status(http_status_codes_1.StatusCodes.BAD_REQUEST).send("all users must me be contacts");
         users.push(req.userId);
@@ -148,7 +150,7 @@ conversationEmiter.on("get conversation", ({ req, res }) => __awaiter(void 0, vo
         const { error } = deleteConversationSchema.validate(req.params);
         if (error)
             return res.status(http_status_codes_1.StatusCodes.BAD_REQUEST).send(error.message);
-        const conversationId = req.params.conversationId;
+        const { conversationId } = req.params;
         if (!req.user.conversations.includes(conversationId))
             return res.status(http_status_codes_1.StatusCodes.UNAUTHORIZED).send("you are not allowed to view this conversation");
         let conversation = yield conversations_1.default.findById(conversationId).populate({ path: "users", select: "username _id lastSeen profilePic" });
@@ -162,6 +164,39 @@ conversationEmiter.on("get conversation", ({ req, res }) => __awaiter(void 0, vo
             _conversation.conversationPic = otherUser.profilePic;
         }
         res.status(http_status_codes_1.StatusCodes.OK).json(_conversation);
+    }
+    catch (error) {
+        res.status(http_status_codes_1.StatusCodes.INTERNAL_SERVER_ERROR).send("server error");
+    }
+}));
+conversationEmiter.on("leave conversation", ({ req, res }) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const { error } = deleteConversationSchema.validate(req.params);
+        if (error)
+            return res.status(http_status_codes_1.StatusCodes.BAD_REQUEST).send(error.message);
+        const { conversationId } = req.params;
+        if (!req.user.conversations.includes(conversationId))
+            return res.status(http_status_codes_1.StatusCodes.BAD_REQUEST).send("you cannot leave a conversation you do not belong to ");
+        const conversation = yield conversations_1.default.findById(conversationId);
+        if (!conversation)
+            return res.status(http_status_codes_1.StatusCodes.NOT_FOUND).send("conversation not found");
+        if (conversation.type == "single")
+            return res.status(http_status_codes_1.StatusCodes.BAD_REQUEST).send("cannot leave a 'single' conversation");
+        const filteredConversationKeys = req.user.conversationKeys.filter(conversationKey => conversationKey.conversationId !== conversationId);
+        const filteredConversations = req.user.conversations.filter(conversation => conversation !== conversationId);
+        const filteredUsers = conversation.users.filter(user => user !== req.userId);
+        yield req.user.updateOne({
+            $set: {
+                conversationKeys: filteredConversationKeys,
+                conversations: filteredConversations
+            }
+        });
+        yield conversation.updateOne({
+            $set: {
+                users: filteredUsers
+            }
+        });
+        res.status(http_status_codes_1.StatusCodes.OK).json({ status: "success" });
     }
     catch (error) {
         res.status(http_status_codes_1.StatusCodes.INTERNAL_SERVER_ERROR).send("server error");

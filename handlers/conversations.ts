@@ -19,6 +19,7 @@ conversationEmiter.on("create conversation", async ({req, res}:ReqResPair)=>{
         if(error) return res.status(StatusCodes.BAD_REQUEST).send(error.message)
         const {users, name, type}= req.body
         if(users.length >1 && type == "single") return res.status(StatusCodes.BAD_REQUEST).send("single conversations can only have 2 users")
+        if (users.length == 1 && type == "group") return res.status(StatusCodes.BAD_REQUEST).send("group conversations must have more than 2 users")
         if(!Helpers.checkIfSubset(req.user.contacts, users)) return res.status(StatusCodes.BAD_REQUEST).send("all users must me be contacts") 
         users.push(req.userId)
         const conversationExists = await Conversation.find({users:{$all:users, $size:users.length}})
@@ -111,7 +112,7 @@ conversationEmiter.on("get conversation", async ({req,res}:ReqResPair)=>{
     try {
         const {error} = deleteConversationSchema.validate(req.params)
         if(error) return res.status(StatusCodes.BAD_REQUEST).send(error.message)
-        const conversationId = req.params.conversationId
+        const {conversationId} = req.params
         if(!req.user.conversations.includes(conversationId)) return res.status(StatusCodes.UNAUTHORIZED).send("you are not allowed to view this conversation")
         let conversation = await Conversation.findById(conversationId).populate<{users:UserInterface[]}>({path:"users", select:"username _id lastSeen profilePic"})
         if(!conversation) return res.status(StatusCodes.NOT_FOUND).send("conversation not found")
@@ -123,6 +124,36 @@ conversationEmiter.on("get conversation", async ({req,res}:ReqResPair)=>{
             _conversation.conversationPic = otherUser.profilePic
         }
         res.status(StatusCodes.OK).json(_conversation)
+    } catch (error) {
+        res.status(StatusCodes.INTERNAL_SERVER_ERROR).send("server error")
+    }
+})
+
+conversationEmiter.on("leave conversation", async ({req,res}:ReqResPair)=>{
+    try {
+        const {error} = deleteConversationSchema.validate(req.params)
+        if(error) return res.status(StatusCodes.BAD_REQUEST).send(error.message)
+        const {conversationId} = req.params
+        if(!req.user.conversations.includes(conversationId)) return res.status(StatusCodes.BAD_REQUEST).send("you cannot leave a conversation you do not belong to ")
+        const conversation  = await Conversation.findById(conversationId)
+        if(!conversation) return res.status(StatusCodes.NOT_FOUND).send("conversation not found")
+        if(conversation.type == "single") return  res.status(StatusCodes.BAD_REQUEST).send("cannot leave a 'single' conversation")
+        const filteredConversationKeys = req.user.conversationKeys.filter(conversationKey => conversationKey.conversationId !== conversationId)
+        const filteredConversations = req.user.conversations.filter(_conversation => _conversation !== conversationId)
+        const filteredUsers  = conversation.users.filter(user => user !== req.userId)
+        await req.user.updateOne({
+            $set:{
+                conversationKeys:filteredConversationKeys,
+                conversations:filteredConversations
+            }
+        })
+        await conversation.updateOne({
+            $set:{
+                users:filteredUsers
+            }
+        })
+
+        res.status(StatusCodes.OK).json({status:"success"})
     } catch (error) {
         res.status(StatusCodes.INTERNAL_SERVER_ERROR).send("server error")
     }

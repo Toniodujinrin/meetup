@@ -19,6 +19,9 @@ router.post("/", authourization_1.default, restriction_1.default, (req, res) => 
 router.post("/add", authourization_1.default, restriction_1.default, (req, res) => {
     conversationEmiter.emit("add to conversation", { req, res });
 });
+router.post("/leave/:conversationId", authourization_1.default, restriction_1.default, (req, res) => {
+    conversationEmiter.emit("leave conversation", { req, res });
+});
 router.delete("/:conversationId", authourization_1.default, restriction_1.default, (req, res) => {
     conversationEmiter.emit("delete", { req, res });
 });
