@@ -156,7 +156,7 @@ conversationEmiter.on("get conversation", ({ req, res }) => __awaiter(void 0, vo
         let conversation = yield conversations_1.default.findById(conversationId).populate({ path: "users", select: "username _id lastSeen profilePic" });
         if (!conversation)
             return res.status(http_status_codes_1.StatusCodes.NOT_FOUND).send("conversation not found");
-        let _conversation = lodash_1.default.pick(conversation, ["type", "users", "name", "created", "conversationPic", "lastSeen"]);
+        let _conversation = lodash_1.default.pick(conversation, ["type", "users", "name", "created", "conversationPic", "lastSeen", "_id"]);
         if (_conversation.type == "single") {
             let otherUser = _conversation.users.filter((user) => user._id != req.userId)[0];
             _conversation.name = otherUser.username;
