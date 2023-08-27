@@ -116,7 +116,7 @@ conversationEmiter.on("get conversation", async ({req,res}:ReqResPair)=>{
         if(!req.user.conversations.includes(conversationId)) return res.status(StatusCodes.UNAUTHORIZED).send("you are not allowed to view this conversation")
         let conversation = await Conversation.findById(conversationId).populate<{users:UserInterface[]}>({path:"users", select:"username _id lastSeen profilePic"})
         if(!conversation) return res.status(StatusCodes.NOT_FOUND).send("conversation not found")
-        let _conversation =  _.pick(conversation,["type","users","name","created","conversationPic","lastSeen"])
+        let _conversation =  _.pick(conversation,["type","users","name","created","conversationPic","lastSeen", "_id"])
         if(_conversation.type == "single"){
             let  otherUser = _conversation.users.filter((user)=> user._id != req.userId)[0]
             _conversation.name = otherUser.username
