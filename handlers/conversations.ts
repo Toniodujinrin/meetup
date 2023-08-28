@@ -7,6 +7,7 @@ import User from "../models/users";
 import { UserInterface } from "../lib/types";
 import Helpers from "../lib/helpers";
 import _ from "lodash";
+import { ObjectId } from "mongoose";
 const {createConversationSchema, addUserSchema, deleteConversationSchema} = conversationSchemas
 const {conversationEmiter} = emiters
 const encryption = new Encryption()
@@ -139,7 +140,8 @@ conversationEmiter.on("leave conversation", async ({req,res}:ReqResPair)=>{
         if(!conversation) return res.status(StatusCodes.NOT_FOUND).send("conversation not found")
         if(conversation.type == "single") return  res.status(StatusCodes.BAD_REQUEST).send("cannot leave a 'single' conversation")
         const filteredConversationKeys = req.user.conversationKeys.filter(conversationKey => conversationKey.conversationId !== conversationId)
-        const filteredConversations = req.user.conversations.filter(_conversation => _conversation !== conversationId)
+        const filteredConversations = req.user.conversations.filter(_conversation => _conversation.toString() !== conversationId)
+       
         const filteredUsers  = conversation.users.filter(user => user !== req.userId)
         await req.user.updateOne({
             $set:{

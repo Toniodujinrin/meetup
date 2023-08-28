@@ -183,7 +183,7 @@ conversationEmiter.on("leave conversation", ({ req, res }) => __awaiter(void 0, 
         if (conversation.type == "single")
             return res.status(http_status_codes_1.StatusCodes.BAD_REQUEST).send("cannot leave a 'single' conversation");
         const filteredConversationKeys = req.user.conversationKeys.filter(conversationKey => conversationKey.conversationId !== conversationId);
-        const filteredConversations = req.user.conversations.filter(_conversation => _conversation !== conversationId);
+        const filteredConversations = req.user.conversations.filter(_conversation => _conversation.toString() !== conversationId);
         const filteredUsers = conversation.users.filter(user => user !== req.userId);
         yield req.user.updateOne({
             $set: {
