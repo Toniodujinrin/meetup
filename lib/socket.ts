@@ -87,7 +87,7 @@ class SocketLib{
         const users = conversation.users
         const proc = users.map( async userId=>{
             if (!onlineSockets.includes(userId)){
-                let user = await User.findById(userId)
+                const user = await User.findById(userId)
                 if(!user) throw new Error("user not found")
                 if(!user.notifications) user.notifications = []
                 const notificationExists = user.notifications.find(notification => notification.conversationId == conversationId)
@@ -101,14 +101,12 @@ class SocketLib{
                 }
                 else user.notifications.unshift({conversationId, amount:1, timeStamp:Date.now()})
                 user.notifications.sort((n1,n2)=> (n1.timeStamp && n2.timeStamp)?  n2.timeStamp - n1.timeStamp:0 )
-                user = await User.findByIdAndUpdate(userId,{
+                await user.updateOne({
                     notifications:user.notifications
-                },{new:true}).populate({path:"notifications.conversationId"})
-                if(user){
-                    const socketId = await this.getSocketIdFromUserId(io,userId)
-                    if(socketId) io.to(socketId).emit("new_notification",user.notifications)
-                }
-               
+                })
+                const socketId = await this.getSocketIdFromUserId(io,userId)
+                
+                if(socketId) io.to(socketId).emit("new_notification",user.notifications)
             }
         
         }
