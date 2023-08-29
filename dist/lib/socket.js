@@ -87,7 +87,7 @@ SocketLib.sendMessage = (io, body, conversationId, senderId) => __awaiter(void 0
     const users = conversation.users;
     const proc = users.map((userId) => __awaiter(void 0, void 0, void 0, function* () {
         if (!onlineSockets.includes(userId)) {
-            let user = yield users_1.default.findById(userId);
+            const user = yield users_1.default.findById(userId);
             if (!user)
                 throw new Error("user not found");
             if (!user.notifications)
@@ -104,14 +104,12 @@ SocketLib.sendMessage = (io, body, conversationId, senderId) => __awaiter(void 0
             else
                 user.notifications.unshift({ conversationId, amount: 1, timeStamp: Date.now() });
             user.notifications.sort((n1, n2) => (n1.timeStamp && n2.timeStamp) ? n2.timeStamp - n1.timeStamp : 0);
-            user = yield users_1.default.findByIdAndUpdate(userId, {
+            yield user.updateOne({
                 notifications: user.notifications
-            }, { new: true }).populate({ path: "notifications.conversationId" });
-            if (user) {
-                const socketId = yield _a.getSocketIdFromUserId(io, userId);
-                if (socketId)
-                    io.to(socketId).emit("new_notification", user.notifications);
-            }
+            });
+            const socketId = yield _a.getSocketIdFromUserId(io, userId);
+            if (socketId)
+                io.to(socketId).emit("new_notification", user.notifications);
         }
     }));
     yield Promise.all(proc);
