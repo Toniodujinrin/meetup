@@ -103,7 +103,7 @@ class SocketLib{
                 user.notifications.sort((n1,n2)=> (n1.timeStamp && n2.timeStamp)?  n2.timeStamp - n1.timeStamp:0 )
                 user = await User.findByIdAndUpdate(userId,{
                     notifications:user.notifications
-                },{new:true}).populate({path:"notifications", populate:{path:"conversationId", select:"conversationPic name _id"}})
+                },{new:true}).populate({path:"notifications.conversationId", select:"conversationPic name _id"})
                 if(user){
                     const socketId = await this.getSocketIdFromUserId(io,userId)
                     if(socketId) io.to(socketId).emit("new_notification",user.notifications)

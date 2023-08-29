@@ -106,7 +106,7 @@ SocketLib.sendMessage = (io, body, conversationId, senderId) => __awaiter(void 0
             user.notifications.sort((n1, n2) => (n1.timeStamp && n2.timeStamp) ? n2.timeStamp - n1.timeStamp : 0);
             user = yield users_1.default.findByIdAndUpdate(userId, {
                 notifications: user.notifications
-            }, { new: true }).populate({ path: "notifications", populate: { path: "conversationId", select: "conversationPic name _id" } });
+            }, { new: true }).populate({ path: "notifications.conversationId", select: "conversationPic name _id" });
             if (user) {
                 const socketId = yield _a.getSocketIdFromUserId(io, userId);
                 if (socketId)
