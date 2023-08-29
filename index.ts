@@ -25,7 +25,7 @@ const server = http.createServer(app)
 const httpsServer = https.createServer({
   key:process.env.SERVER_KEY,
   cert:process.env.SERVER_CERT,
-  ca:process.env.CA,
+  ca:process.env.CA
 
 
 },app)
@@ -36,6 +36,7 @@ const io = new Server(httpsServer,{
     origin:["https://meet-up-client.vercel.app", "http://localhost:3000"],
     methods:["GET","POST"],
     credentials: true,
+    
   },
   
 })

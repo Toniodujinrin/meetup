@@ -85,16 +85,16 @@ SocketLib.sendMessage = (io, body, conversationId, senderId) => __awaiter(void 0
     // send notification to all offline users
     const onlineSockets = yield _a.getAllSocketsInRoom(io, conversationId);
     const users = conversation.users;
-    const proc = users.map((user) => __awaiter(void 0, void 0, void 0, function* () {
-        if (!onlineSockets.includes(user)) {
-            const usr = yield users_1.default.findById(user);
-            if (!usr)
+    const proc = users.map((userId) => __awaiter(void 0, void 0, void 0, function* () {
+        if (!onlineSockets.includes(userId)) {
+            let user = yield users_1.default.findById(userId);
+            if (!user)
                 throw new Error("user not found");
-            if (!usr.notifications)
-                usr.notifications = [];
-            const notificationExists = usr.notifications.find(notification => notification.conversationId == conversationId);
+            if (!user.notifications)
+                user.notifications = [];
+            const notificationExists = user.notifications.find(notification => notification.conversationId == conversationId);
             if (notificationExists) {
-                usr.notifications.map(notification => {
+                user.notifications.map(notification => {
                     if (notification.conversationId == conversationId && notification.amount) {
                         notification.amount += 1;
                         notification.timeStamp = Date.now();
@@ -102,14 +102,16 @@ SocketLib.sendMessage = (io, body, conversationId, senderId) => __awaiter(void 0
                 });
             }
             else
-                usr.notifications.unshift({ conversationId, amount: 1, timeStamp: Date.now() });
-            usr.notifications.sort((n1, n2) => (n1.timeStamp && n2.timeStamp) ? n2.timeStamp - n1.timeStamp : 0);
-            yield usr.updateOne({
-                notifications: usr.notifications
-            });
-            const socketId = yield _a.getSocketIdFromUserId(io, user);
-            if (socketId)
-                io.to(socketId).emit("new_notification", usr.notifications);
+                user.notifications.unshift({ conversationId, amount: 1, timeStamp: Date.now() });
+            user.notifications.sort((n1, n2) => (n1.timeStamp && n2.timeStamp) ? n2.timeStamp - n1.timeStamp : 0);
+            user = yield users_1.default.findByIdAndUpdate(userId, {
+                notifications: user.notifications
+            }, { new: true }).populate({ path: "notifications", populate: { path: "conversationId", select: "conversationPic name _id" } });
+            if (user) {
+                const socketId = yield _a.getSocketIdFromUserId(io, userId);
+                if (socketId)
+                    io.to(socketId).emit("new_notification", user.notifications);
+            }
         }
     }));
     yield Promise.all(proc);

@@ -23,7 +23,7 @@ const server = http_1.default.createServer(app);
 const httpsServer = https_1.default.createServer({
     key: process.env.SERVER_KEY,
     cert: process.env.SERVER_CERT,
-    ca: process.env.CA,
+    ca: process.env.CA
 }, app);
 const io = new socket_io_1.Server(httpsServer, {
     cors: {

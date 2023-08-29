@@ -85,28 +85,30 @@ class SocketLib{
 
         const onlineSockets = await this.getAllSocketsInRoom(io,conversationId)
         const users = conversation.users
-        const proc = users.map( async user=>{
-            if (!onlineSockets.includes(user)){
-                const usr = await User.findById(user)
-                if(!usr) throw new Error("user not found")
-                if(!usr.notifications) usr.notifications = []
-                const notificationExists = usr.notifications.find(notification => notification.conversationId == conversationId)
+        const proc = users.map( async userId=>{
+            if (!onlineSockets.includes(userId)){
+                let user = await User.findById(userId)
+                if(!user) throw new Error("user not found")
+                if(!user.notifications) user.notifications = []
+                const notificationExists = user.notifications.find(notification => notification.conversationId == conversationId)
                 if (notificationExists){
-                    usr.notifications.map(notification =>{
+                    user.notifications.map(notification =>{
                         if (notification.conversationId == conversationId && notification.amount){
                             notification.amount += 1 
                             notification.timeStamp = Date.now()
                         }
                     })
                 }
-                else usr.notifications.unshift({conversationId, amount:1, timeStamp:Date.now()})
-                usr.notifications.sort((n1,n2)=> (n1.timeStamp && n2.timeStamp)?  n2.timeStamp - n1.timeStamp:0 )
-                await usr.updateOne({
-                    notifications:usr.notifications
-                })
-                const socketId = await this.getSocketIdFromUserId(io,user)
-                
-                if(socketId) io.to(socketId).emit("new_notification",usr.notifications)
+                else user.notifications.unshift({conversationId, amount:1, timeStamp:Date.now()})
+                user.notifications.sort((n1,n2)=> (n1.timeStamp && n2.timeStamp)?  n2.timeStamp - n1.timeStamp:0 )
+                user = await User.findByIdAndUpdate(userId,{
+                    notifications:user.notifications
+                },{new:true}).populate({path:"notifications", populate:{path:"conversationId", select:"conversationPic name _id"}})
+                if(user){
+                    const socketId = await this.getSocketIdFromUserId(io,userId)
+                    if(socketId) io.to(socketId).emit("new_notification",user.notifications)
+                }
+               
             }
         
         }
