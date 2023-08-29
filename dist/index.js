@@ -14,9 +14,10 @@ const socket_1 = __importDefault(require("./server/socket"));
 require("dotenv").config();
 processes_1.default.envChecker();
 (0, mongoconnect_1.default)();
-// Processes.otpProcess()
+processes_1.default.otpProcess();
 processes_1.default.messageProcess();
 processes_1.default.conversationProcess();
+processes_1.default.notificationProcess();
 const app = (0, express_1.default)();
 (0, startup_1.default)(app);
 const server = http_1.default.createServer(app);

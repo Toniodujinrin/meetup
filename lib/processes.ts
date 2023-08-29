@@ -3,6 +3,7 @@ import Conversation from "../models/conversations"
 import OTP from "../models/otps"
 import { ObjectId } from "mongodb"
 import { Schema } from "mongoose"
+import User from "../models/users"
 class Processes{
     static envChecker = ()=>{
         console.log("\x1b[33m%s\x1b[0m","[+] Checking environment variables ...")
@@ -37,8 +38,6 @@ class Processes{
     static conversationProcess = ()=>{
         console.log("\x1b[33m%s\x1b[0m","[+] Conversation process started ...")
         setInterval( async ()=>{
-       
-        
         const conversations = await Conversation.find({"messages.0":{$exists:true}})
         if(conversations){
             const conversationProcess = conversations.map(async conversation =>{
@@ -57,6 +56,24 @@ class Processes{
       },(1000*60*5))
      
     }
+
+    static notificationProcess = ()=>{
+        console.log("\x1b[33m%s\x1b[0m","[+] Notifications process started ...")
+        setInterval( async ()=>{
+            const users = await User.find({"notifications.0":{$exists:true}})
+            if(users){
+                const userProcess = users.map(async user => {
+                    const notifications = user.notifications.filter(notification => {if(notification.timeStamp){ return notification.timeStamp + 86400000 > Date.now()}})
+                    await user.updateOne({
+                        notifications
+                    })
+                })
+                await Promise.all(userProcess)
+            }
+        },10000)
+    }
+
+    
 
 }
 

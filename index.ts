@@ -14,9 +14,10 @@ require("dotenv").config()
 Processes.envChecker()
 
 conncectToDatabase()
-// Processes.otpProcess()
+Processes.otpProcess()
 Processes.messageProcess()
 Processes.conversationProcess()
+Processes.notificationProcess()
 const app = express()
 startup(app)
 

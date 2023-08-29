@@ -7,7 +7,7 @@ import Helpers from "../lib/helpers"
 import {MessageInterface, ReqResPair } from "../lib/types";
 import _ from "lodash"
 import { deleteImage, uploadImage } from "../lib/images";
-import { populate } from "dotenv";
+
 
 
 const {userEmiter}= emiter

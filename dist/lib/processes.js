@@ -16,6 +16,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const message_1 = __importDefault(require("../models/message"));
 const conversations_1 = __importDefault(require("../models/conversations"));
 const otps_1 = __importDefault(require("../models/otps"));
+const users_1 = __importDefault(require("../models/users"));
 class Processes {
 }
 _a = Processes;
@@ -64,5 +65,22 @@ Processes.conversationProcess = () => {
             yield Promise.all(conversationProcess);
         }
     }), (1000 * 60 * 5));
+};
+Processes.notificationProcess = () => {
+    console.log("\x1b[33m%s\x1b[0m", "[+] Notifications process started ...");
+    setInterval(() => __awaiter(void 0, void 0, void 0, function* () {
+        const users = yield users_1.default.find({ "notifications.0": { $exists: true } });
+        if (users) {
+            const userProcess = users.map((user) => __awaiter(void 0, void 0, void 0, function* () {
+                const notifications = user.notifications.filter(notification => { if (notification.timeStamp) {
+                    return notification.timeStamp + 86400000 > Date.now();
+                } });
+                yield user.updateOne({
+                    notifications
+                });
+            }));
+            yield Promise.all(userProcess);
+        }
+    }), 10000);
 };
 exports.default = Processes;
