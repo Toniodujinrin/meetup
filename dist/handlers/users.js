@@ -150,7 +150,7 @@ userEmiter.on("verify email", ({ req, res }) => __awaiter(void 0, void 0, void 0
             return res.status(http_status_codes_1.StatusCodes.BAD_REQUEST).send(error.message);
         const { otp } = req.body;
         const otpInDatabase = yield otps_1.default.findById(otp);
-        if (otpInDatabase && otpInDatabase.email == req.userId && otpInDatabase.timestamp < Date.now() - 300000) {
+        if (otpInDatabase && otpInDatabase.email == req.userId) {
             yield req.user.updateOne({
                 $set: {
                     emailVerified: true,
