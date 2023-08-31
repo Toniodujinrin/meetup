@@ -28,7 +28,6 @@ class SocketLib{
                 io.to(room).emit("onlineUsers",ids)
             }
         }
-        
     }
 
     static leaveRoom = async(socket:Socket, io:Server, conversationId:string)=>{
@@ -101,19 +100,15 @@ class SocketLib{
                 }
                 else user.notifications.unshift({conversationId, amount:1, timeStamp:Date.now()})
                 user.notifications.sort((n1,n2)=> (n1.timeStamp && n2.timeStamp)?  n2.timeStamp - n1.timeStamp:0 )
-                await user.updateOne({
+                await user.updateOne({$set:{
                     notifications:user.notifications
-                })
+                }})
                 const socketId = await this.getSocketIdFromUserId(io,userId)
-                
                 if(socketId) io.to(socketId).emit("new_notification",user.notifications)
             }
-        
         }
         )
         await Promise.all(proc)
-      
-
     }
 
     static updateLastSeen = async(email:string|undefined)=>{
@@ -149,8 +144,6 @@ class SocketLib{
                     await Promise.all(proc)
                 }
             }
-            
-            
             const updatedPreviousMessages = await Conversation.findById(conversationId).populate<{messages:MessageInterfacePopulated[]}>({path:"messages",populate:{path:"senderId",select:"_id username profilePic"}})
             return updatedPreviousMessages?.messages 
         } 
@@ -161,7 +154,7 @@ class SocketLib{
         const user = await User.findById(socket.user)
         if(!user) throw new Error("user not found")
         const notifications = user.notifications.filter(notification => notification.conversationId !== conversationId)
-        await user.updateOne({notifications})
+        await user.updateOne({$set:{notifications}})
         socket.emit("notification",notifications)
     }
 

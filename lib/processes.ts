@@ -1,7 +1,6 @@
 import Message from "../models/message"
 import Conversation from "../models/conversations"
 import OTP from "../models/otps"
-import { ObjectId } from "mongodb"
 import { Schema } from "mongoose"
 import User from "../models/users"
 class Processes{
@@ -23,14 +22,14 @@ class Processes{
     static otpProcess = ()=>{
         console.log("\x1b[33m%s\x1b[0m","[+] OTP process started ...")
         setInterval(async()=>{
-            await OTP.deleteMany({expiry:{$lt:Date.now()}})
+            await OTP.deleteMany({timestamp:{$lt:Date.now()-300000}})
         },10000)
     }
 
     static messageProcess = ()=>{
         console.log("\x1b[33m%s\x1b[0m","[+] Message process started ...")
         setInterval(async ()=>{
-            await Message.deleteMany({expiry:{$lt:Date.now()}})
+            await Message.deleteMany({timeStamp:{$lt:Date.now()-86400000}})
         },10000)
     }
 

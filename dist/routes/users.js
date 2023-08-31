@@ -55,4 +55,7 @@ router.post("/", (req, res) => {
 router.put("/", authourization_1.default, restriction_1.default, (req, res) => {
     userEmiter.emit("update user", { req, res });
 });
+router.delete("/", authourization_1.default, restriction_1.default, (req, res) => {
+    userEmiter.emit("delete account", { req, res });
+});
 exports.default = router;

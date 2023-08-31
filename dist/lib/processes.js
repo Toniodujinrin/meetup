@@ -37,13 +37,13 @@ Processes.envChecker = () => {
 Processes.otpProcess = () => {
     console.log("\x1b[33m%s\x1b[0m", "[+] OTP process started ...");
     setInterval(() => __awaiter(void 0, void 0, void 0, function* () {
-        yield otps_1.default.deleteMany({ expiry: { $lt: Date.now() } });
+        yield otps_1.default.deleteMany({ timestamp: { $lt: Date.now() - 300000 } });
     }), 10000);
 };
 Processes.messageProcess = () => {
     console.log("\x1b[33m%s\x1b[0m", "[+] Message process started ...");
     setInterval(() => __awaiter(void 0, void 0, void 0, function* () {
-        yield message_1.default.deleteMany({ expiry: { $lt: Date.now() } });
+        yield message_1.default.deleteMany({ timeStamp: { $lt: Date.now() - 86400000 } });
     }), 10000);
 };
 Processes.conversationProcess = () => {

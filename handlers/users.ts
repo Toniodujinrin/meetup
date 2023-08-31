@@ -116,7 +116,7 @@ userEmiter.on("verify email", async({req, res}:ReqResPair)=>{
         if(error) return res.status(StatusCodes.BAD_REQUEST).send(error.message)
         const {otp}= req.body
         const otpInDatabase = await OTP.findById(otp)
-        if(otpInDatabase && otpInDatabase.email == req.userId && otpInDatabase.expiry <= Date.now()){
+        if(otpInDatabase && otpInDatabase.email == req.userId && otpInDatabase.timestamp < Date.now()-300000){
         await req.user.updateOne({
             $set:{
                 emailVerified:true, 
@@ -321,14 +321,13 @@ userEmiter.on("upload image", async({req,res}:ReqResPair) => {
 })
 
 
-
-
-
-
-
-
-
-
-
-
+userEmiter.on("delete account", async({req,res}:ReqResPair)=>{
+    try {
+        await User.findOneAndDelete({_id:req.userId})
+        res.status(StatusCodes.OK).json({status:"success"})
+    } catch (error) {
+        console.log(error)
+        res.status(StatusCodes.INTERNAL_SERVER_ERROR).send("server error")
+    }
+})
 

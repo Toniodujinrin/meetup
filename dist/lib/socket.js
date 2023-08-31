@@ -104,9 +104,9 @@ SocketLib.sendMessage = (io, body, conversationId, senderId) => __awaiter(void 0
             else
                 user.notifications.unshift({ conversationId, amount: 1, timeStamp: Date.now() });
             user.notifications.sort((n1, n2) => (n1.timeStamp && n2.timeStamp) ? n2.timeStamp - n1.timeStamp : 0);
-            yield user.updateOne({
-                notifications: user.notifications
-            });
+            yield user.updateOne({ $set: {
+                    notifications: user.notifications
+                } });
             const socketId = yield _a.getSocketIdFromUserId(io, userId);
             if (socketId)
                 io.to(socketId).emit("new_notification", user.notifications);
@@ -155,7 +155,7 @@ SocketLib.clearNotifications = (conversationId, socket) => __awaiter(void 0, voi
     if (!user)
         throw new Error("user not found");
     const notifications = user.notifications.filter(notification => notification.conversationId !== conversationId);
-    yield user.updateOne({ notifications });
+    yield user.updateOne({ $set: { notifications } });
     socket.emit("notification", notifications);
 });
 exports.default = SocketLib;

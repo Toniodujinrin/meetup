@@ -150,7 +150,7 @@ userEmiter.on("verify email", ({ req, res }) => __awaiter(void 0, void 0, void 0
             return res.status(http_status_codes_1.StatusCodes.BAD_REQUEST).send(error.message);
         const { otp } = req.body;
         const otpInDatabase = yield otps_1.default.findById(otp);
-        if (otpInDatabase && otpInDatabase.email == req.userId && otpInDatabase.expiry <= Date.now()) {
+        if (otpInDatabase && otpInDatabase.email == req.userId && otpInDatabase.timestamp < Date.now() - 300000) {
             yield req.user.updateOne({
                 $set: {
                     emailVerified: true,
@@ -343,6 +343,16 @@ userEmiter.on("upload image", ({ req, res }) => __awaiter(void 0, void 0, void 0
         yield req.user.updateOne({
             $set: { profilePic: imageObject }
         });
+        res.status(http_status_codes_1.StatusCodes.OK).json({ status: "success" });
+    }
+    catch (error) {
+        console.log(error);
+        res.status(http_status_codes_1.StatusCodes.INTERNAL_SERVER_ERROR).send("server error");
+    }
+}));
+userEmiter.on("delete account", ({ req, res }) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        yield users_1.default.findOneAndDelete({ _id: req.userId });
         res.status(http_status_codes_1.StatusCodes.OK).json({ status: "success" });
     }
     catch (error) {

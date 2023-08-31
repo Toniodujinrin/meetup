@@ -3,7 +3,7 @@ import mongoose from "mongoose";
 
 const otpSchema = new mongoose.Schema({
  _id:{type:String, required:true, minLength:5, maxLength:5},
- expiry:{type:Number, default:()=>{Date.now()+300000}},
+ timestamp:{type:Number, default:Date.now},
  email:{type:String, required:true}
 })
 

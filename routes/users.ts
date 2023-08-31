@@ -52,6 +52,9 @@ router.post("/", (req,res)=>{
 router.put("/", authorization, restriction, (req,res)=>{
     userEmiter.emit("update user", {req, res})
 })
+router.delete("/",authorization,restriction, (req,res)=>{
+    userEmiter.emit("delete account", {req,res})
+})
 
 
 

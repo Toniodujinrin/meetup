@@ -1,6 +1,8 @@
 import mongoose from "mongoose";
 import Joi from "joi";
-import { ObjectId } from "mongodb";
+import { UserInterface } from "../lib/types";
+import Conversation from "./conversations";
+import Message from "./message";
 
 
 
@@ -36,7 +38,37 @@ const usersSchema = new mongoose.Schema({
 })
 
 
+usersSchema.post<UserInterface>("findOneAndDelete",async function(doc:UserInterface){
+    try {
+        //update conversations and contact list 
+       
+        const contactProcess = doc.contacts.map(async contact => {
+            const user = await User.findById(contact)
+            if(user){
+                user.contacts = user.contacts.filter(cont => cont !== doc._id)
+                await user.updateOne({$set:{contacts:user.contacts}})
+            }
+        })
+        await Promise.all(contactProcess)
+        const conversationProcess = doc.conversations.map(async conversation =>{
+            const conv = await Conversation.findById(conversation)
+            if(conv){
+                   conv.users = conv.users.filter(user => user !== doc._id)
+                    await conv.updateOne({
+                        $set:{users:conv.users}
+                    })
+                    if(conv.type == "single"){
+                        await Conversation.findByIdAndDelete(conv._id)
+                    }
+            }
+        })
 
+        await Message.deleteMany({senderId:doc._id})
+        await Promise.all(conversationProcess)
+    } catch (error) {
+        console.log(error)
+    } 
+})
 
 
 
