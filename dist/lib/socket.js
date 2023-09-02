@@ -158,4 +158,28 @@ SocketLib.clearNotifications = (conversationId, socket) => __awaiter(void 0, voi
     yield user.updateOne({ $set: { notifications } });
     socket.emit("notification", notifications);
 });
+SocketLib.notifyOnline = (socket, io) => __awaiter(void 0, void 0, void 0, function* () {
+    const user = yield users_1.default.findById(socket.user);
+    if (!user)
+        throw new Error("user not found");
+    const process = user.contacts.map((contact) => __awaiter(void 0, void 0, void 0, function* () {
+        const socketId = yield _a.getSocketIdFromUserId(io, contact);
+        if (socketId) {
+            io.to(socketId).emit("newOnlineContact", socket.user);
+        }
+    }));
+    yield Promise.all(process);
+});
+SocketLib.notifyOffline = (socket, io) => __awaiter(void 0, void 0, void 0, function* () {
+    const user = yield users_1.default.findById(socket.user);
+    if (!user)
+        throw new Error("user not found");
+    const process = user.contacts.map((contact) => __awaiter(void 0, void 0, void 0, function* () {
+        const socketId = yield _a.getSocketIdFromUserId(io, contact);
+        if (socketId) {
+            io.to(socketId).emit("newOfflineContact", socket.user);
+        }
+    }));
+    yield Promise.all(process);
+});
 exports.default = SocketLib;

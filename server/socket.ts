@@ -16,6 +16,7 @@ const socketHandler = (io:Server)=>{
         const user = await User.findById(socket.user)
         socket.emit("notification", user?.notifications)
         socket.emit("onlineContacts",onlineContacts)
+        await SocketLib.notifyOnline(socket,io)
         
         socket.on("join",async ({conversationId})=>{
             try {
@@ -67,14 +68,22 @@ const socketHandler = (io:Server)=>{
 
         socket.on("disconnecting", async ()=>{
             try {
-                
                 await SocketLib.leaveAllRooms(socket, io)
+                await SocketLib.notifyOffline(socket,io)
                 await SocketLib.updateLastSeen(socket.user)
             } catch (error) {
                 console.log(error)
                 socket.emit("conn_error",error)
             }
         })
+
+        // socket.on("call", async({offer,conversationId})=>{
+        //     try {
+        //         await SocketLib.
+        //     } catch (error) {
+                
+        //     }
+        // })
        
         
     })

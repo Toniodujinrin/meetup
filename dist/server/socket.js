@@ -23,6 +23,7 @@ const socketHandler = (io) => {
         const user = yield users_1.default.findById(socket.user);
         socket.emit("notification", user === null || user === void 0 ? void 0 : user.notifications);
         socket.emit("onlineContacts", onlineContacts);
+        yield socket_1.default.notifyOnline(socket, io);
         socket.on("join", ({ conversationId }) => __awaiter(void 0, void 0, void 0, function* () {
             try {
                 const groupKey = yield socket_1.default.getUserGroupKey(socket.user, conversationId);
@@ -70,6 +71,7 @@ const socketHandler = (io) => {
         socket.on("disconnecting", () => __awaiter(void 0, void 0, void 0, function* () {
             try {
                 yield socket_1.default.leaveAllRooms(socket, io);
+                yield socket_1.default.notifyOffline(socket, io);
                 yield socket_1.default.updateLastSeen(socket.user);
             }
             catch (error) {
@@ -77,6 +79,12 @@ const socketHandler = (io) => {
                 socket.emit("conn_error", error);
             }
         }));
+        // socket.on("call", async({offer,conversationId})=>{
+        //     try {
+        //         await SocketLib.
+        //     } catch (error) {
+        //     }
+        // })
     }));
 };
 exports.default = socketHandler;

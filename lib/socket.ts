@@ -158,6 +158,34 @@ class SocketLib{
         socket.emit("notification",notifications)
     }
 
+    static notifyOnline = async (socket:any, io:Server)=>{
+        const user = await User.findById(socket.user)
+        if(!user) throw new Error("user not found")
+        const process = user.contacts.map( async contact => {
+            const socketId = await this.getSocketIdFromUserId(io, contact)
+            if(socketId){
+                io.to(socketId).emit("newOnlineContact",socket.user)
+            }
+            
+        })
+        await Promise.all(process)
+
+    }
+
+    static notifyOffline = async(socket:any, io:Server)=>{
+        const user = await User.findById(socket.user)
+        if(!user) throw new Error("user not found")
+        const process = user.contacts.map( async contact => {
+            const socketId = await this.getSocketIdFromUserId(io, contact)
+            if(socketId){
+                io.to(socketId).emit("newOfflineContact",socket.user)
+            }
+            
+        })
+        await Promise.all(process)
+
+    }
+
 
   
 }
