@@ -79,12 +79,33 @@ const socketHandler = (io) => {
                 socket.emit("conn_error", error);
             }
         }));
-        // socket.on("call", async({offer,conversationId})=>{
-        //     try {
-        //         await SocketLib.
-        //     } catch (error) {
-        //     }
-        // })
+        socket.on("call", ({ offer, conversationId }) => __awaiter(void 0, void 0, void 0, function* () {
+            try {
+                yield socket_1.default.signalCall(offer, conversationId, socket, io);
+            }
+            catch (error) {
+                console.log(error);
+                socket.emit("signaling_error", error);
+            }
+        }));
+        socket.on("new_iceCandidate", ({ iceCandidate, conversationId }) => __awaiter(void 0, void 0, void 0, function* () {
+            try {
+                yield socket_1.default.signalIceCandidate(iceCandidate, conversationId, socket, io);
+            }
+            catch (error) {
+                console.log(error);
+                socket.emit("signaling_error", error);
+            }
+        }));
+        socket.on("call_response", ({ answer, conversationId }) => __awaiter(void 0, void 0, void 0, function* () {
+            try {
+                yield socket_1.default.signalResponse(answer, conversationId, socket, io);
+            }
+            catch (error) {
+                console.log(error);
+                socket.emit("signaling_error", error);
+            }
+        }));
     }));
 };
 exports.default = socketHandler;

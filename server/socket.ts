@@ -6,6 +6,7 @@ import { SocketInterface } from "../lib/types"
 
 
 
+
 const socketHandler = (io:Server)=>{
     io.use(authorization)
     
@@ -77,13 +78,33 @@ const socketHandler = (io:Server)=>{
             }
         })
 
-        // socket.on("call", async({offer,conversationId})=>{
-        //     try {
-        //         await SocketLib.
-        //     } catch (error) {
-                
-        //     }
-        // })
+        socket.on("call", async({offer,conversationId})=>{
+            try {
+                await SocketLib.signalCall(offer,conversationId,socket,io)
+            } catch (error) {
+                console.log(error)
+                socket.emit("signaling_error",error)
+            }
+        })
+
+        socket.on("new_iceCandidate", async({iceCandidate, conversationId})=>{
+            try {
+                await SocketLib.signalIceCandidate(iceCandidate,conversationId,socket,io)
+            } catch (error) {
+                console.log(error)
+                socket.emit("signaling_error",error)
+            }
+        })
+
+        socket.on("call_response", async({answer,conversationId})=>{
+            try {
+                await SocketLib.signalResponse(answer,conversationId,socket,io)
+            } catch (error) {
+                console.log(error)
+                socket.emit("signaling_error",error)
+            }
+        })
+
        
         
     })

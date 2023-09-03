@@ -182,4 +182,46 @@ SocketLib.notifyOffline = (socket, io) => __awaiter(void 0, void 0, void 0, func
     }));
     yield Promise.all(process);
 });
+SocketLib.signalCall = (offer, conversationId, socket, io) => __awaiter(void 0, void 0, void 0, function* () {
+    const conversation = yield conversations_1.default.findById(conversationId);
+    if (!conversation)
+        return socket.emit("offerSignalError", new Error("socket does not exist"));
+    if (conversation.type == "group")
+        return socket.emit("offerSignalError", new Error("socket does not exist"));
+    const receiver = conversation.users.filter(user => user !== socket.user)[0];
+    if (receiver) {
+        const recieverSocketId = yield _a.getSocketIdFromUserId(io, receiver);
+        if (!recieverSocketId)
+            return socket.emit("offerSignalError", new Error("user unavailable"));
+        io.to(recieverSocketId).emit("call", { offer, conversationId });
+    }
+});
+SocketLib.signalIceCandidate = (iceCandidate, conversationId, socket, io) => __awaiter(void 0, void 0, void 0, function* () {
+    const conversation = yield conversations_1.default.findById(conversationId);
+    if (!conversation)
+        return socket.emit("iceCandidateSignalError", new Error("socket does not exist"));
+    if (conversation.type == "group")
+        return socket.emit("iceCandidateSignalError", new Error("socket does not exist"));
+    const receiver = conversation.users.filter(user => user !== socket.user)[0];
+    if (receiver) {
+        const recieverSocketId = yield _a.getSocketIdFromUserId(io, receiver);
+        if (!recieverSocketId)
+            return socket.emit("iceCandidateSignalError", new Error("user unavailable"));
+        io.to(recieverSocketId).emit("new_iceCandidate", iceCandidate);
+    }
+});
+SocketLib.signalResponse = (answer, conversationId, socket, io) => __awaiter(void 0, void 0, void 0, function* () {
+    const conversation = yield conversations_1.default.findById(conversationId);
+    if (!conversation)
+        return socket.emit("replySignalError", new Error("socket does not exist"));
+    if (conversation.type == "group")
+        return socket.emit("replySignalError", new Error("socket does not exist"));
+    const receiver = conversation.users.filter(user => user !== socket.user)[0];
+    if (receiver) {
+        const recieverSocketId = yield _a.getSocketIdFromUserId(io, receiver);
+        if (!recieverSocketId)
+            return socket.emit("replySignalError", new Error("user unavailable"));
+        io.to(recieverSocketId).emit("call_response", answer);
+    }
+});
 exports.default = SocketLib;

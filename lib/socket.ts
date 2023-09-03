@@ -3,7 +3,7 @@ import User from "../models/users"
 import Conversation from "../models/conversations"
 import Message from "../models/message"
 import _ from "lodash"
-import { MessageInterface, MessageInterfacePopulated } from "./types"
+import { MessageInterface, MessageInterfacePopulated, SocketInterface } from "./types"
 
 
 class SocketLib{
@@ -20,7 +20,7 @@ class SocketLib{
     }
 
     
-    static leaveAllRooms = async (socket:any, io:Server)=>{
+    static leaveAllRooms = async (socket:SocketInterface, io:Server)=>{
         for  (let room of socket.rooms){
             if(room !== socket.id){
                 let  ids = await this.getAllSocketsInRoom(io,room)
@@ -150,7 +150,7 @@ class SocketLib{
     }
 
 
-    static clearNotifications = async(conversationId:string, socket:any)=>{
+    static clearNotifications = async(conversationId:string, socket:SocketInterface)=>{
         const user = await User.findById(socket.user)
         if(!user) throw new Error("user not found")
         const notifications = user.notifications.filter(notification => notification.conversationId !== conversationId)
@@ -158,7 +158,7 @@ class SocketLib{
         socket.emit("notification",notifications)
     }
 
-    static notifyOnline = async (socket:any, io:Server)=>{
+    static notifyOnline = async (socket:SocketInterface, io:Server)=>{
         const user = await User.findById(socket.user)
         if(!user) throw new Error("user not found")
         const process = user.contacts.map( async contact => {
@@ -172,7 +172,7 @@ class SocketLib{
 
     }
 
-    static notifyOffline = async(socket:any, io:Server)=>{
+    static notifyOffline = async(socket:SocketInterface, io:Server)=>{
         const user = await User.findById(socket.user)
         if(!user) throw new Error("user not found")
         const process = user.contacts.map( async contact => {
@@ -186,8 +186,44 @@ class SocketLib{
 
     }
 
+    static signalCall = async (offer:any, conversationId:string, socket:SocketInterface, io:Server) =>{
+        const conversation = await Conversation.findById(conversationId)
+        if(!conversation) return socket.emit("offerSignalError", new Error("socket does not exist"))
+        if (conversation.type  == "group") return socket.emit("offerSignalError", new Error("socket does not exist"))
+        const receiver = conversation.users.filter(user => user !== socket.user)[0]
+        if(receiver){
+            const recieverSocketId = await this.getSocketIdFromUserId(io,receiver)
+            if(!recieverSocketId) return socket.emit("offerSignalError", new Error("user unavailable"))
+            io.to(recieverSocketId).emit("call",{offer,conversationId})
+        }
+     }
 
-  
-}
+     static signalIceCandidate = async(iceCandidate:any,conversationId:string,socket:SocketInterface, io:Server)=>{
+        const conversation = await Conversation.findById(conversationId)
+           if(!conversation) return socket.emit("iceCandidateSignalError", new Error("socket does not exist"))
+        if (conversation.type  == "group") return socket.emit("iceCandidateSignalError", new Error("socket does not exist"))
+        const receiver = conversation.users.filter(user => user !== socket.user)[0]
+        if(receiver){
+            const recieverSocketId = await this.getSocketIdFromUserId(io,receiver)
+            if(!recieverSocketId) return socket.emit("iceCandidateSignalError", new Error("user unavailable"))
+            io.to(recieverSocketId).emit("new_iceCandidate",iceCandidate)
+        }
+    }
+
+    static signalResponse = async (answer:any, conversationId:string,socket:SocketInterface, io:Server)=>{
+        const conversation = await Conversation.findById(conversationId)
+        if(!conversation) return socket.emit("replySignalError", new Error("socket does not exist"))
+        if (conversation.type  == "group") return socket.emit("replySignalError", new Error("socket does not exist"))
+        const receiver = conversation.users.filter(user => user !== socket.user)[0]
+        if(receiver){
+            const recieverSocketId = await this.getSocketIdFromUserId(io,receiver)
+            if(!recieverSocketId) return socket.emit("replySignalError", new Error("user unavailable"))
+            io.to(recieverSocketId).emit("call_response",answer)
+        }
+    }
+
+    }
+
+ 
 
 export default SocketLib
