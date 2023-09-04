@@ -37,7 +37,7 @@ const socketHandler = (io) => {
             }
             catch (error) {
                 console.log(error);
-                socket.emit("conn_error", error);
+                socket.emit("join_error", error);
             }
         }));
         socket.on("leaveRoom", ({ conversationId }) => __awaiter(void 0, void 0, void 0, function* () {
@@ -59,7 +59,7 @@ const socketHandler = (io) => {
             }
             catch (error) {
                 console.log(error);
-                socket.emit("conn_error", error);
+                socket.emit("message_error", error);
             }
         }));
         socket.on("typing", ({ conversationId }) => {
@@ -76,7 +76,7 @@ const socketHandler = (io) => {
             }
             catch (error) {
                 console.log(error);
-                socket.emit("conn_error", error);
+                socket.emit("leave_error", error);
             }
         }));
         socket.on("call", ({ offer, conversationId }) => __awaiter(void 0, void 0, void 0, function* () {

@@ -31,7 +31,7 @@ const socketHandler = (io:Server)=>{
                 io.to(conversationId).emit("onlineUsers",onlineUsers)
             } catch (error) {
                 console.log(error)
-                socket.emit("conn_error",error)
+                socket.emit("join_error",error)
             } 
         })
 
@@ -55,7 +55,7 @@ const socketHandler = (io:Server)=>{
             await SocketLib.sendMessage(io,body,conversationId, socket.user)
         } catch (error) {
             console.log(error)
-            socket.emit("conn_error",error)
+            socket.emit("message_error",error)
         }
         })
 
@@ -74,7 +74,7 @@ const socketHandler = (io:Server)=>{
                 await SocketLib.updateLastSeen(socket.user)
             } catch (error) {
                 console.log(error)
-                socket.emit("conn_error",error)
+                socket.emit("leave_error",error)
             }
         })
 

@@ -30,18 +30,28 @@ SocketLib.getAllSocketsInRoomWithIds = (io, room) => __awaiter(void 0, void 0, v
     return ids;
 });
 SocketLib.leaveAllRooms = (socket, io) => __awaiter(void 0, void 0, void 0, function* () {
-    for (let room of socket.rooms) {
-        if (room !== socket.id) {
-            let ids = yield _a.getAllSocketsInRoom(io, room);
-            ids = ids.filter(id => id !== socket.user);
-            io.to(room).emit("onlineUsers", ids);
+    try {
+        for (let room of socket.rooms) {
+            if (room !== socket.id) {
+                let ids = yield _a.getAllSocketsInRoom(io, room);
+                ids = ids.filter(id => id !== socket.user);
+                io.to(room).emit("onlineUsers", ids);
+            }
         }
+    }
+    catch (error) {
+        socket.emit("leave_error", error);
     }
 });
 SocketLib.leaveRoom = (socket, io, conversationId) => __awaiter(void 0, void 0, void 0, function* () {
-    yield socket.leave(conversationId);
-    const ids = yield _a.getAllSocketsInRoom(io, conversationId);
-    io.to(conversationId).emit("onlineUsers", ids);
+    try {
+        yield socket.leave(conversationId);
+        const ids = yield _a.getAllSocketsInRoom(io, conversationId);
+        io.to(conversationId).emit("onlineUsers", ids);
+    }
+    catch (error) {
+        socket.emit("leave_error", error);
+    }
 });
 SocketLib.getAllSockets = (io) => __awaiter(void 0, void 0, void 0, function* () {
     const client = yield io.fetchSockets();
@@ -130,57 +140,77 @@ SocketLib.getUserGroupKey = (email, conversationId) => __awaiter(void 0, void 0,
     throw new Error("invalid user");
 });
 SocketLib.getPreviousMessages = (conversationId, socket) => __awaiter(void 0, void 0, void 0, function* () {
-    let previousMessages = yield conversations_1.default.findById(conversationId).populate("messages");
-    if (previousMessages) {
-        const messages = previousMessages.messages;
-        if (messages.length > 0) {
-            const lastMessage = messages[messages.length - 1];
-            if (lastMessage.senderId !== socket.user) {
-                const proc = messages.map((message) => __awaiter(void 0, void 0, void 0, function* () {
-                    if (message.status !== "read") {
-                        yield message_1.default.findByIdAndUpdate(message._id, {
-                            $set: { status: "read" }
-                        });
-                    }
-                }));
-                yield Promise.all(proc);
+    try {
+        let previousMessages = yield conversations_1.default.findById(conversationId).populate("messages");
+        if (previousMessages) {
+            const messages = previousMessages.messages;
+            if (messages.length > 0) {
+                const lastMessage = messages[messages.length - 1];
+                if (lastMessage.senderId !== socket.user) {
+                    const proc = messages.map((message) => __awaiter(void 0, void 0, void 0, function* () {
+                        if (message.status !== "read") {
+                            yield message_1.default.findByIdAndUpdate(message._id, {
+                                $set: { status: "read" }
+                            });
+                        }
+                    }));
+                    yield Promise.all(proc);
+                }
             }
+            const updatedPreviousMessages = yield conversations_1.default.findById(conversationId).populate({ path: "messages", populate: { path: "senderId", select: "_id username profilePic" } });
+            return updatedPreviousMessages === null || updatedPreviousMessages === void 0 ? void 0 : updatedPreviousMessages.messages;
         }
-        const updatedPreviousMessages = yield conversations_1.default.findById(conversationId).populate({ path: "messages", populate: { path: "senderId", select: "_id username profilePic" } });
-        return updatedPreviousMessages === null || updatedPreviousMessages === void 0 ? void 0 : updatedPreviousMessages.messages;
+    }
+    catch (error) {
+        socket.emit("previousMessages_error", error);
     }
 });
 SocketLib.clearNotifications = (conversationId, socket) => __awaiter(void 0, void 0, void 0, function* () {
-    const user = yield users_1.default.findById(socket.user);
-    if (!user)
-        throw new Error("user not found");
-    const notifications = user.notifications.filter(notification => notification.conversationId !== conversationId);
-    yield user.updateOne({ $set: { notifications } });
-    socket.emit("notification", notifications);
+    try {
+        const user = yield users_1.default.findById(socket.user);
+        if (!user)
+            throw new Error("user not found");
+        const notifications = user.notifications.filter(notification => notification.conversationId !== conversationId);
+        yield user.updateOne({ $set: { notifications } });
+        socket.emit("notification", notifications);
+    }
+    catch (error) {
+        socket.emit("clearNotification_error", error);
+    }
 });
 SocketLib.notifyOnline = (socket, io) => __awaiter(void 0, void 0, void 0, function* () {
-    const user = yield users_1.default.findById(socket.user);
-    if (!user)
-        throw new Error("user not found");
-    const process = user.contacts.map((contact) => __awaiter(void 0, void 0, void 0, function* () {
-        const socketId = yield _a.getSocketIdFromUserId(io, contact);
-        if (socketId) {
-            io.to(socketId).emit("newOnlineContact", socket.user);
-        }
-    }));
-    yield Promise.all(process);
+    try {
+        const user = yield users_1.default.findById(socket.user);
+        if (!user)
+            throw new Error("user not found");
+        const process = user.contacts.map((contact) => __awaiter(void 0, void 0, void 0, function* () {
+            const socketId = yield _a.getSocketIdFromUserId(io, contact);
+            if (socketId) {
+                io.to(socketId).emit("newOnlineContact", socket.user);
+            }
+        }));
+        yield Promise.all(process);
+    }
+    catch (error) {
+        socket.emit("botifyOnline_error", error);
+    }
 });
 SocketLib.notifyOffline = (socket, io) => __awaiter(void 0, void 0, void 0, function* () {
-    const user = yield users_1.default.findById(socket.user);
-    if (!user)
-        throw new Error("user not found");
-    const process = user.contacts.map((contact) => __awaiter(void 0, void 0, void 0, function* () {
-        const socketId = yield _a.getSocketIdFromUserId(io, contact);
-        if (socketId) {
-            io.to(socketId).emit("newOfflineContact", socket.user);
-        }
-    }));
-    yield Promise.all(process);
+    try {
+        const user = yield users_1.default.findById(socket.user);
+        if (!user)
+            throw new Error("user not found");
+        const process = user.contacts.map((contact) => __awaiter(void 0, void 0, void 0, function* () {
+            const socketId = yield _a.getSocketIdFromUserId(io, contact);
+            if (socketId) {
+                io.to(socketId).emit("newOfflineContact", socket.user);
+            }
+        }));
+        yield Promise.all(process);
+    }
+    catch (error) {
+        socket.emit("notifyOffline_error", error);
+    }
 });
 SocketLib.signalCall = (offer, conversationId, socket, io) => __awaiter(void 0, void 0, void 0, function* () {
     const conversation = yield conversations_1.default.findById(conversationId);

@@ -21,6 +21,7 @@ class SocketLib{
 
     
     static leaveAllRooms = async (socket:SocketInterface, io:Server)=>{
+        try{
         for  (let room of socket.rooms){
             if(room !== socket.id){
                 let  ids = await this.getAllSocketsInRoom(io,room)
@@ -28,12 +29,22 @@ class SocketLib{
                 io.to(room).emit("onlineUsers",ids)
             }
         }
+        }
+        catch(error){
+        socket.emit("leave_error",error)
+        }
     }
 
     static leaveRoom = async(socket:Socket, io:Server, conversationId:string)=>{
+    try {
+        
+  
        await socket.leave(conversationId)
        const ids = await this.getAllSocketsInRoom(io,conversationId)
        io.to(conversationId).emit("onlineUsers",ids)
+    } catch (error) {
+        socket.emit("leave_error",error)
+    }
     }
 
 
@@ -128,6 +139,7 @@ class SocketLib{
     }
 
     static getPreviousMessages = async (conversationId:string|undefined, socket:any )=>{
+        try{
         let previousMessages = await Conversation.findById(conversationId).populate<{messages:MessageInterface[]}>("messages")
         if(previousMessages){
             const messages = previousMessages.messages
@@ -147,18 +159,29 @@ class SocketLib{
             const updatedPreviousMessages = await Conversation.findById(conversationId).populate<{messages:MessageInterfacePopulated[]}>({path:"messages",populate:{path:"senderId",select:"_id username profilePic"}})
             return updatedPreviousMessages?.messages 
         } 
+        }
+        catch (error){
+            socket.emit("previousMessages_error",error)
+        }
     }
 
 
     static clearNotifications = async(conversationId:string, socket:SocketInterface)=>{
+        try {
         const user = await User.findById(socket.user)
         if(!user) throw new Error("user not found")
         const notifications = user.notifications.filter(notification => notification.conversationId !== conversationId)
         await user.updateOne({$set:{notifications}})
         socket.emit("notification",notifications)
+    } catch (error) {
+        socket.emit("clearNotification_error",error)
+    }
     }
 
     static notifyOnline = async (socket:SocketInterface, io:Server)=>{
+        try {
+            
+       
         const user = await User.findById(socket.user)
         if(!user) throw new Error("user not found")
         const process = user.contacts.map( async contact => {
@@ -169,21 +192,27 @@ class SocketLib{
             
         })
         await Promise.all(process)
+    } catch (error) {
+        socket.emit("botifyOnline_error",error)
+    }
 
     }
 
     static notifyOffline = async(socket:SocketInterface, io:Server)=>{
-        const user = await User.findById(socket.user)
-        if(!user) throw new Error("user not found")
-        const process = user.contacts.map( async contact => {
-            const socketId = await this.getSocketIdFromUserId(io, contact)
-            if(socketId){
-                io.to(socketId).emit("newOfflineContact",socket.user)
-            }
-            
-        })
-        await Promise.all(process)
-
+        try {
+            const user = await User.findById(socket.user)
+            if(!user) throw new Error("user not found")
+            const process = user.contacts.map( async contact => {
+                const socketId = await this.getSocketIdFromUserId(io, contact)
+                if(socketId){
+                    io.to(socketId).emit("newOfflineContact",socket.user)
+                }
+                
+            })
+            await Promise.all(process)
+        } catch (error) {
+            socket.emit("notifyOffline_error",error)
+        }
     }
 
     static signalCall = async (offer:any, conversationId:string, socket:SocketInterface, io:Server) =>{
