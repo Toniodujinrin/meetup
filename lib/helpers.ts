@@ -77,7 +77,8 @@ class Helpers{
             _conversation.conversationPic = otherUserObject.profilePic? otherUserObject.profilePic: {}
         }
         else{
-            _conversation.conversationPic = {}
+            _conversation.conversationPic = conversation.conversationPic
+            _conversation.name = conversation.name
         }
         _conversation.type = conversation.type
         _conversation._id = conversation._id
