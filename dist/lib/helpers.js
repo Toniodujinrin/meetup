@@ -18,6 +18,7 @@ const axios_1 = __importDefault(require("axios"));
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const conversations_1 = __importDefault(require("../models/conversations"));
 const users_1 = __importDefault(require("../models/users"));
+const lodash_1 = __importDefault(require("lodash"));
 class Helpers {
 }
 _a = Helpers;
@@ -97,11 +98,13 @@ Helpers.getNormalizedNotifications = (userId) => __awaiter(void 0, void 0, void 
     const user = yield users_1.default.findById(userId);
     if (user) {
         let normalizedNotifcations = user.notifications.map((notification) => __awaiter(void 0, void 0, void 0, function* () {
-            notification.conversationDetails = yield _a.normalizeConversation(notification.conversationId, userId);
-            return notification;
+            let _notification = {};
+            _notification = lodash_1.default.pick(notification, ["amount", "conversationId", "timeStamp", "_id"]);
+            _notification.conversationDetails = yield _a.normalizeConversation(notification.conversationId, userId);
+            return _notification;
         }));
-        normalizedNotifcations = yield Promise.all(normalizedNotifcations);
-        return normalizedNotifcations;
+        const _normalizedNotifcations = yield Promise.all(normalizedNotifcations);
+        return _normalizedNotifcations;
     }
 });
 exports.default = Helpers;

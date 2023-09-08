@@ -7,6 +7,7 @@ import Conversation from "../models/conversations"
 import User from "../models/users"
 import { populate } from "dotenv"
 import mongoose from "mongoose"
+import _ from "lodash"
 
 
 class Helpers{
@@ -90,11 +91,13 @@ class Helpers{
         const user = await User.findById(userId)
         if(user){
            let normalizedNotifcations = user.notifications.map(async (notification:any) => {
-             notification.conversationDetails = await this.normalizeConversation(notification.conversationId,userId)
-             return notification
+             let _notification:{amount?:number, timeStamp?:number, conversationId?:string, _id?:string, conversationDetails?:any}  = {}
+             _notification = _.pick(notification,["amount","conversationId","timeStamp","_id"])
+             _notification.conversationDetails = await this.normalizeConversation(notification.conversationId,userId)
+             return _notification
            })
-           normalizedNotifcations = await Promise.all(normalizedNotifcations)
-           return normalizedNotifcations
+           const _normalizedNotifcations = await Promise.all(normalizedNotifcations)
+           return _normalizedNotifcations
         }
     }
 
