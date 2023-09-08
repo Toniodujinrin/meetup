@@ -4,6 +4,7 @@ import Conversation from "../models/conversations"
 import Message from "../models/message"
 import _ from "lodash"
 import { MessageInterface, MessageInterfacePopulated, SocketInterface } from "./types"
+import Helpers from "./helpers"
 
 
 class SocketLib{
@@ -114,8 +115,9 @@ class SocketLib{
                 await user.updateOne({$set:{
                     notifications:user.notifications
                 }})
+                const normalizedNotifcations = await Helpers.getNormalizedNotifications(userId)
                 const socketId = await this.getSocketIdFromUserId(io,userId)
-                if(socketId) io.to(socketId).emit("new_notification",user.notifications)
+                if(socketId) io.to(socketId).emit("new_notification",normalizedNotifcations)
             }
         }
         )

@@ -7,6 +7,7 @@ import Helpers from "../lib/helpers"
 import {MessageInterface, ReqResPair } from "../lib/types";
 import _ from "lodash"
 import { deleteImage, uploadImage } from "../lib/images";
+import { normalize } from "path";
 
 
 
@@ -160,37 +161,20 @@ userEmiter.on("get conversations", async({req,res}:ReqResPair)=>{
     try{
         const response = await User.findById(req.userId).populate({path:"conversations", populate:{path:"messages"}})
         if(!response) return res.status(StatusCodes.NOT_FOUND)
-        let editedConversations = response.conversations.map(async (conversation:any) =>{
-                let _conversation:{name?:string, conversationPic?:{url:string, public_id:string}, lastMessage?:MessageInterface, _id?:string, users?:string[], type?:string} = {}
-                if(conversation.type == "single"){
-                    let  otherUser = conversation.users.filter((user:string)=> user != req.userId)[0]
-                    otherUser = await User.findById(otherUser)
-                    _conversation.name = otherUser.username 
-                    _conversation.conversationPic = otherUser.profilePic
-                }
-                else{
-                    _conversation.name = conversation.name
-                    _conversation.conversationPic = conversation.conversationPic
-                }
-                _conversation.type = conversation.type
-                _conversation._id = conversation._id
-                _conversation.users = conversation.users
-                _conversation.lastMessage = conversation.messages.length > 0?conversation.messages[conversation.messages.length - 1]:null
-                
-                 
-               
-                return _conversation
+        let editedConversations = response.conversations.map(async (conversationId:any) =>{
+            const normalizedConversation = await Helpers.normalizeConversation(conversationId, req.userId)
+            console.log(normalizedConversation)
+            return normalizedConversation
         })
-
         let result = await Promise.all(editedConversations)
+        console.log(result)
         //make improvements for conversations with no messages 
-        const resultWithMessages = result.filter(message => message.lastMessage)
-        resultWithMessages.sort((r1,r2) => (r1.lastMessage && r2.lastMessage)? r2.lastMessage.timeStamp - r1.lastMessage.timeStamp : 0)
-        const resultWithoutMessages = result.filter(message => !message.lastMessage)
+        const resultWithMessages = result.filter(conversation => {if(conversation){ return conversation.lastMessage}})
+        resultWithMessages.sort((r1,r2) =>(r1 && r2 && r1.lastMessage && r2.lastMessage)? r2.lastMessage.timeStamp - r1.lastMessage.timeStamp : 0)
+        const resultWithoutMessages = result.filter(conversation =>{if(conversation){return !conversation.lastMessage}})
         result = [...resultWithMessages,...resultWithoutMessages]
         res.status(StatusCodes.OK).json(result)
     }
-    
     catch (error){
         console.log(error)
         res.status(StatusCodes.INTERNAL_SERVER_ERROR).send("server error")

@@ -16,6 +16,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const crypto_1 = __importDefault(require("crypto"));
 const axios_1 = __importDefault(require("axios"));
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
+const conversations_1 = __importDefault(require("../models/conversations"));
+const users_1 = __importDefault(require("../models/users"));
 class Helpers {
 }
 _a = Helpers;
@@ -69,4 +71,37 @@ Helpers.checkIfSubset = (arr1, arr2) => {
     }
     return isSubset;
 };
+Helpers.normalizeConversation = (conversationId, userId) => __awaiter(void 0, void 0, void 0, function* () {
+    const conversation = yield conversations_1.default.findById(conversationId).populate("messages");
+    let _conversation = {};
+    if (!conversation)
+        return null;
+    if (conversation.type == "single") {
+        const otherUser = conversation.users.filter((user) => user != userId)[0];
+        const otherUserObject = yield users_1.default.findById(otherUser);
+        if (!otherUserObject)
+            return null;
+        _conversation.name = otherUserObject.username;
+        _conversation.conversationPic = otherUserObject.profilePic ? otherUserObject.profilePic : {};
+    }
+    else {
+        _conversation.conversationPic = {};
+    }
+    _conversation.type = conversation.type;
+    _conversation._id = conversation._id;
+    _conversation.users = conversation.users;
+    _conversation.lastMessage = conversation.messages.length > 0 ? conversation.messages[conversation.messages.length - 1] : undefined;
+    return _conversation;
+});
+Helpers.getNormalizedNotifications = (userId) => __awaiter(void 0, void 0, void 0, function* () {
+    const user = yield users_1.default.findById(userId);
+    if (user) {
+        let normalizedNotifcations = user.notifications.map((notification) => __awaiter(void 0, void 0, void 0, function* () {
+            notification.conversationDetails = yield _a.normalizeConversation(notification.conversationId, userId);
+            return notification;
+        }));
+        normalizedNotifcations = yield Promise.all(normalizedNotifcations);
+        return normalizedNotifcations;
+    }
+});
 exports.default = Helpers;

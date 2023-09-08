@@ -16,6 +16,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const users_1 = __importDefault(require("../models/users"));
 const conversations_1 = __importDefault(require("../models/conversations"));
 const message_1 = __importDefault(require("../models/message"));
+const helpers_1 = __importDefault(require("./helpers"));
 class SocketLib {
 }
 _a = SocketLib;
@@ -117,9 +118,10 @@ SocketLib.sendMessage = (io, body, conversationId, senderId) => __awaiter(void 0
             yield user.updateOne({ $set: {
                     notifications: user.notifications
                 } });
+            const normalizedNotifcations = yield helpers_1.default.getNormalizedNotifications(userId);
             const socketId = yield _a.getSocketIdFromUserId(io, userId);
             if (socketId)
-                io.to(socketId).emit("new_notification", user.notifications);
+                io.to(socketId).emit("new_notification", normalizedNotifcations);
         }
     }));
     yield Promise.all(proc);

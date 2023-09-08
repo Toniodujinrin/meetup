@@ -192,29 +192,21 @@ userEmiter.on("get conversations", ({ req, res }) => __awaiter(void 0, void 0, v
         const response = yield users_1.default.findById(req.userId).populate({ path: "conversations", populate: { path: "messages" } });
         if (!response)
             return res.status(http_status_codes_1.StatusCodes.NOT_FOUND);
-        let editedConversations = response.conversations.map((conversation) => __awaiter(void 0, void 0, void 0, function* () {
-            let _conversation = {};
-            if (conversation.type == "single") {
-                let otherUser = conversation.users.filter((user) => user != req.userId)[0];
-                otherUser = yield users_1.default.findById(otherUser);
-                _conversation.name = otherUser.username;
-                _conversation.conversationPic = otherUser.profilePic;
-            }
-            else {
-                _conversation.name = conversation.name;
-                _conversation.conversationPic = conversation.conversationPic;
-            }
-            _conversation.type = conversation.type;
-            _conversation._id = conversation._id;
-            _conversation.users = conversation.users;
-            _conversation.lastMessage = conversation.messages.length > 0 ? conversation.messages[conversation.messages.length - 1] : null;
-            return _conversation;
+        let editedConversations = response.conversations.map((conversationId) => __awaiter(void 0, void 0, void 0, function* () {
+            const normalizedConversation = yield helpers_1.default.normalizeConversation(conversationId, req.userId);
+            console.log(normalizedConversation);
+            return normalizedConversation;
         }));
         let result = yield Promise.all(editedConversations);
+        console.log(result);
         //make improvements for conversations with no messages 
-        const resultWithMessages = result.filter(message => message.lastMessage);
-        resultWithMessages.sort((r1, r2) => (r1.lastMessage && r2.lastMessage) ? r2.lastMessage.timeStamp - r1.lastMessage.timeStamp : 0);
-        const resultWithoutMessages = result.filter(message => !message.lastMessage);
+        const resultWithMessages = result.filter(conversation => { if (conversation) {
+            return conversation.lastMessage;
+        } });
+        resultWithMessages.sort((r1, r2) => (r1 && r2 && r1.lastMessage && r2.lastMessage) ? r2.lastMessage.timeStamp - r1.lastMessage.timeStamp : 0);
+        const resultWithoutMessages = result.filter(conversation => { if (conversation) {
+            return !conversation.lastMessage;
+        } });
         result = [...resultWithMessages, ...resultWithoutMessages];
         res.status(http_status_codes_1.StatusCodes.OK).json(result);
     }

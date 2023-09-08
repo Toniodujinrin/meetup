@@ -1,6 +1,12 @@
 import crypto from "crypto"
 import axios from "axios"
 import jwt from "jsonwebtoken"
+import { ObjectId } from "mongoose"
+import { MessageInterface } from "./types"
+import Conversation from "../models/conversations"
+import User from "../models/users"
+import { populate } from "dotenv"
+import mongoose from "mongoose"
 
 
 class Helpers{
@@ -57,7 +63,46 @@ class Helpers{
 
         return isSubset
     }
+
+    static normalizeConversation = async (conversationId:string, userId:string)=>{
+        const  conversation = await Conversation.findById(conversationId).populate<{messages:MessageInterface[]}>("messages")
+        let _conversation:{name?:string, conversationPic?:{url:string, public_id:string}|{}, lastMessage?:MessageInterface, _id?:string, users?:string[], type?:string} = {}
+        if (!conversation) return null
+        if(conversation.type == "single"){
+            const otherUser = conversation.users.filter((user:string)=> user != userId)[0]
+            const otherUserObject  = await User.findById(otherUser)
+            if(!otherUserObject) return null
+            _conversation.name = otherUserObject.username
+            _conversation.conversationPic = otherUserObject.profilePic? otherUserObject.profilePic: {}
+        }
+        else{
+            _conversation.conversationPic = {}
+        }
+        _conversation.type = conversation.type
+        _conversation._id = conversation._id
+        _conversation.users = conversation.users
+        _conversation.lastMessage = conversation.messages.length > 0 ? conversation.messages[conversation.messages.length -1]:undefined
+        return _conversation
+    }
+
+
+    static getNormalizedNotifications  = async(userId:string)=>{
+        const user = await User.findById(userId)
+        if(user){
+           let normalizedNotifcations = user.notifications.map(async (notification:any) => {
+             notification.conversationDetails = await this.normalizeConversation(notification.conversationId,userId)
+             return notification
+           })
+           normalizedNotifcations = await Promise.all(normalizedNotifcations)
+           return normalizedNotifcations
+        }
+    }
+
+   
 }
+
+
+
 
 
 
