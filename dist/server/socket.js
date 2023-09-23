@@ -41,13 +41,8 @@ const socketHandler = (io) => {
             }
         }));
         socket.on("leaveRoom", ({ conversationId }) => __awaiter(void 0, void 0, void 0, function* () {
-            try {
-                yield socket_1.default.leaveRoom(socket, io, conversationId);
-            }
-            catch (error) {
-                console.log(error);
-                socket.emit("conn_error", error);
-            }
+            yield socket_1.default.leaveRoom(socket, io, conversationId);
+            yield socket_1.default.updateLastSeen(socket.user);
         }));
         socket.on("messageRead", ({ conversationId }) => __awaiter(void 0, void 0, void 0, function* () {
             const previousMessages = yield socket_1.default.getPreviousMessages(conversationId, socket);

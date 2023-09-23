@@ -7,8 +7,10 @@ import User from "../models/users";
 import { UserInterface } from "../lib/types";
 import Helpers from "../lib/helpers";
 import _ from "lodash";
-import { ObjectId } from "mongoose";
-const {createConversationSchema, addUserSchema, deleteConversationSchema} = conversationSchemas
+import { userSchemas } from "../models/users";
+import ImageLib from "../lib/images";
+
+const {createConversationSchema, addUserSchema, deleteConversationSchema, conversationPicUploadSchema} = conversationSchemas
 const {conversationEmiter} = emiters
 const encryption = new Encryption()
 
@@ -141,7 +143,6 @@ conversationEmiter.on("leave conversation", async ({req,res}:ReqResPair)=>{
         if(conversation.type == "single") return  res.status(StatusCodes.BAD_REQUEST).send("cannot leave a 'single' conversation")
         const filteredConversationKeys = req.user.conversationKeys.filter(conversationKey => conversationKey.conversationId !== conversationId)
         const filteredConversations = req.user.conversations.filter(_conversation => _conversation.toString() !== conversationId)
-       
         const filteredUsers  = conversation.users.filter(user => user !== req.userId)
         await req.user.updateOne({
             $set:{
@@ -160,3 +161,28 @@ conversationEmiter.on("leave conversation", async ({req,res}:ReqResPair)=>{
         res.status(StatusCodes.INTERNAL_SERVER_ERROR).send("server error")
     }
 })
+
+
+conversationEmiter.on("conversation pic", async({req,res}:ReqResPair)=>{
+    try {
+        const {error} = conversationPicUploadSchema.validate(req.body)
+        if(error) return res.status(StatusCodes.BAD_REQUEST).send(error.message)
+        const {conversationId,image} = req.body
+        const conversation = await Conversation.findById(conversationId)
+        if(!conversation) return res.status(StatusCodes.NOT_FOUND).send("conversation does not exist")
+        if(conversation.type == "single") return res.status(StatusCodes.BAD_REQUEST).send("you cannot upload a conversation picture for single conversations")
+        if(!conversation.users.includes(req.userId)) return res.status(StatusCodes.UNAUTHORIZED).send("you do not belong to this conversation")
+        const imageObject = await new ImageLib().uploadImage(image,"conversationPictures")
+        if(conversation.conversationPic.public_id){
+            await new ImageLib().deleteImage(conversation.conversationPic.public_id)
+        }
+        await conversation.updateOne({
+            $set:{conversationPic:imageObject}
+        })
+        res.status(StatusCodes.OK).json({status:"success"})        
+    } catch (error) {
+        console.log(error)         
+        res.status(StatusCodes.INTERNAL_SERVER_ERROR).send("server error")
+    }
+    }
+)

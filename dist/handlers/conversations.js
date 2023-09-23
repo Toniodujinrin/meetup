@@ -42,7 +42,8 @@ const encryption_1 = __importDefault(require("../lib/encryption"));
 const users_1 = __importDefault(require("../models/users"));
 const helpers_1 = __importDefault(require("../lib/helpers"));
 const lodash_1 = __importDefault(require("lodash"));
-const { createConversationSchema, addUserSchema, deleteConversationSchema } = conversations_1.conversationSchemas;
+const images_1 = __importDefault(require("../lib/images"));
+const { createConversationSchema, addUserSchema, deleteConversationSchema, conversationPicUploadSchema } = conversations_1.conversationSchemas;
 const { conversationEmiter } = emiters_1.default;
 const encryption = new encryption_1.default();
 conversationEmiter.on("create conversation", ({ req, res }) => __awaiter(void 0, void 0, void 0, function* () {
@@ -199,6 +200,33 @@ conversationEmiter.on("leave conversation", ({ req, res }) => __awaiter(void 0, 
         res.status(http_status_codes_1.StatusCodes.OK).json({ status: "success" });
     }
     catch (error) {
+        res.status(http_status_codes_1.StatusCodes.INTERNAL_SERVER_ERROR).send("server error");
+    }
+}));
+conversationEmiter.on("conversation pic", ({ req, res }) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const { error } = conversationPicUploadSchema.validate(req.body);
+        if (error)
+            return res.status(http_status_codes_1.StatusCodes.BAD_REQUEST).send(error.message);
+        const { conversationId, image } = req.body;
+        const conversation = yield conversations_1.default.findById(conversationId);
+        if (!conversation)
+            return res.status(http_status_codes_1.StatusCodes.NOT_FOUND).send("conversation does not exist");
+        if (conversation.type == "single")
+            return res.status(http_status_codes_1.StatusCodes.BAD_REQUEST).send("you cannot upload a conversation picture for single conversations");
+        if (!conversation.users.includes(req.userId))
+            return res.status(http_status_codes_1.StatusCodes.UNAUTHORIZED).send("you do not belong to this conversation");
+        const imageObject = yield new images_1.default().uploadImage(image, "conversationPictures");
+        if (conversation.conversationPic.public_id) {
+            yield new images_1.default().deleteImage(conversation.conversationPic.public_id);
+        }
+        yield conversation.updateOne({
+            $set: { conversationPic: imageObject }
+        });
+        res.status(http_status_codes_1.StatusCodes.OK).json({ status: "success" });
+    }
+    catch (error) {
+        console.log(error);
         res.status(http_status_codes_1.StatusCodes.INTERNAL_SERVER_ERROR).send("server error");
     }
 }));

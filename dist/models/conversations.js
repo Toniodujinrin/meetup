@@ -42,6 +42,10 @@ const conversationSchemas = {
     }),
     deleteConversationSchema: joi_1.default.object({
         conversationId: joi_1.default.string().required()
+    }),
+    conversationPicUploadSchema: joi_1.default.object({
+        conversationId: joi_1.default.string().required(),
+        image: joi_1.default.string().required()
     })
 };
 exports.conversationSchemas = conversationSchemas;

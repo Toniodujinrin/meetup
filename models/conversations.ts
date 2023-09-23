@@ -33,6 +33,10 @@ const conversationSchemas = {
    }),
    deleteConversationSchema:Joi.object({
       conversationId:Joi.string().required()
+   }),
+   conversationPicUploadSchema: Joi.object({
+      conversationId:Joi.string().required(),
+      image:Joi.string().required()
    })
 }
 

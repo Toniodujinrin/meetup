@@ -36,12 +36,8 @@ const socketHandler = (io:Server)=>{
         })
 
         socket.on("leaveRoom", async ({conversationId})=>{
-          try {
             await SocketLib.leaveRoom(socket,io,conversationId)
-          } catch (error) {
-            console.log(error)
-            socket.emit("conn_error",error)
-          }
+            await SocketLib.updateLastSeen(socket.user)
         })
 
         socket.on("messageRead", async ({conversationId})=>{

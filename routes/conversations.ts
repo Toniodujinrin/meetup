@@ -18,6 +18,10 @@ router.post("/add", authorization,restriction, (req, res)=>{
   conversationEmiter.emit("add to conversation", {req, res})
 })
 
+router.post("/conversationPic", authorization, restriction, (req,res)=>{
+  conversationEmiter.emit("conversation pic", {req,res})
+})
+
 router.post("/leave/:conversationId", authorization, restriction, (req,res)=>{
   conversationEmiter.emit("leave conversation", {req,res})
 })
@@ -25,5 +29,6 @@ router.post("/leave/:conversationId", authorization, restriction, (req,res)=>{
 router.delete("/:conversationId",authorization, restriction, (req, res)=>{
   conversationEmiter.emit("delete", {req,res})
 })
+
 
 export default router

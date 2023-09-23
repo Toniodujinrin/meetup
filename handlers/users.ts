@@ -4,10 +4,10 @@ import OTP from "../models/otps";
 import Encryption from "../lib/encryption";
 import { StatusCodes } from "http-status-codes";
 import Helpers from "../lib/helpers"
-import {MessageInterface, ReqResPair } from "../lib/types";
+import {ReqResPair } from "../lib/types";
 import _ from "lodash"
-import { deleteImage, uploadImage } from "../lib/images";
-import { normalize } from "path";
+import ImageLib from "../lib/images";
+
 
 
 
@@ -167,8 +167,6 @@ userEmiter.on("get conversations", async({req,res}:ReqResPair)=>{
             return normalizedConversation
         })
         let result = await Promise.all(editedConversations)
-        console.log(result)
-        //make improvements for conversations with no messages 
         const resultWithMessages = result.filter(conversation => {if(conversation){ return conversation.lastMessage}})
         resultWithMessages.sort((r1,r2) =>(r1 && r2 && r1.lastMessage && r2.lastMessage)? r2.lastMessage.timeStamp - r1.lastMessage.timeStamp : 0)
         const resultWithoutMessages = result.filter(conversation =>{if(conversation){return !conversation.lastMessage}})
@@ -289,10 +287,10 @@ userEmiter.on("upload image", async({req,res}:ReqResPair) => {
     const {error} = uploadImageSchema.validate(req.body)
     if(error) return res.status(StatusCodes.BAD_REQUEST).send(error.message)
     const {image} = req.body
-    const imageObject = await uploadImage(image,"profilePictures")
+    const imageObject = await new ImageLib().uploadImage(image,"profilePictures")
     if(req.user.profilePic.public_id){
         
-        await deleteImage(req.user.profilePic.public_id)
+        await new ImageLib().deleteImage(req.user.profilePic.public_id)
     }
     await req.user.updateOne({
         $set:{ profilePic:imageObject}

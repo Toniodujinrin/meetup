@@ -12,26 +12,26 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.deleteImage = exports.uploadImage = void 0;
 const cloudinary_1 = __importDefault(require("cloudinary"));
-const uploadImage = (image, folder) => __awaiter(void 0, void 0, void 0, function* () {
-    cloudinary_1.default.v2.config({
-        cloud_name: process.env.CLOUDINARY_NAME,
-        api_key: process.env.CLOUDINARY_API_KEY,
-        api_secret: process.env.CLOUDINARY_API_SECRET,
-        secure: true
-    });
-    const { public_id, secure_url: url } = yield cloudinary_1.default.v2.uploader.upload(image, { folder: folder });
-    return { public_id, url };
-});
-exports.uploadImage = uploadImage;
-const deleteImage = (public_id) => __awaiter(void 0, void 0, void 0, function* () {
-    cloudinary_1.default.v2.config({
-        cloud_name: process.env.CLOUDINARY_NAME,
-        api_key: process.env.CLOUDINARY_API_KEY,
-        api_secret: process.env.CLOUDINARY_API_SECRET,
-        secure: true
-    });
-    yield cloudinary_1.default.v2.uploader.destroy(public_id);
-});
-exports.deleteImage = deleteImage;
+class ImageLib {
+    constructor() {
+        cloudinary_1.default.v2.config({
+            cloud_name: process.env.CLOUDINARY_NAME,
+            api_key: process.env.CLOUDINARY_API_KEY,
+            api_secret: process.env.CLOUDINARY_API_SECRET,
+            secure: true
+        });
+    }
+    uploadImage(image, folder) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const { public_id, secure_url: url } = yield cloudinary_1.default.v2.uploader.upload(image, { folder: folder });
+            return { public_id, url };
+        });
+    }
+    deleteImage(public_id) {
+        return __awaiter(this, void 0, void 0, function* () {
+            yield cloudinary_1.default.v2.uploader.destroy(public_id);
+        });
+    }
+}
+exports.default = ImageLib;

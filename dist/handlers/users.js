@@ -41,7 +41,7 @@ const otps_1 = __importDefault(require("../models/otps"));
 const encryption_1 = __importDefault(require("../lib/encryption"));
 const http_status_codes_1 = require("http-status-codes");
 const helpers_1 = __importDefault(require("../lib/helpers"));
-const images_1 = require("../lib/images");
+const images_1 = __importDefault(require("../lib/images"));
 const { userEmiter } = emiters_1.default;
 const encryption = new encryption_1.default();
 const { createUserSchema, verifyAccountSchema, verifyEmailSchema, getUserSchema, updateUserSchema, searchUserSchema, uploadImageSchema } = users_1.userSchemas;
@@ -198,8 +198,6 @@ userEmiter.on("get conversations", ({ req, res }) => __awaiter(void 0, void 0, v
             return normalizedConversation;
         }));
         let result = yield Promise.all(editedConversations);
-        console.log(result);
-        //make improvements for conversations with no messages 
         const resultWithMessages = result.filter(conversation => { if (conversation) {
             return conversation.lastMessage;
         } });
@@ -328,9 +326,9 @@ userEmiter.on("upload image", ({ req, res }) => __awaiter(void 0, void 0, void 0
         if (error)
             return res.status(http_status_codes_1.StatusCodes.BAD_REQUEST).send(error.message);
         const { image } = req.body;
-        const imageObject = yield (0, images_1.uploadImage)(image, "profilePictures");
+        const imageObject = yield new images_1.default().uploadImage(image, "profilePictures");
         if (req.user.profilePic.public_id) {
-            yield (0, images_1.deleteImage)(req.user.profilePic.public_id);
+            yield new images_1.default().deleteImage(req.user.profilePic.public_id);
         }
         yield req.user.updateOne({
             $set: { profilePic: imageObject }
