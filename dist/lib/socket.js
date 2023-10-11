@@ -22,12 +22,16 @@ class SocketLib {
 _a = SocketLib;
 SocketLib.getAllSocketsInRoom = (io, room) => __awaiter(void 0, void 0, void 0, function* () {
     const clients = yield io.in(room).fetchSockets();
-    const ids = clients.map((client) => { return client.user; });
+    const ids = clients.map((client) => {
+        return client.user;
+    });
     return ids;
 });
 SocketLib.getAllSocketsInRoomWithIds = (io, room) => __awaiter(void 0, void 0, void 0, function* () {
     const clients = yield io.in(room).fetchSockets();
-    const ids = clients.map((client) => { return { userId: client.user, socketId: client.id }; });
+    const ids = clients.map((client) => {
+        return { userId: client.user, socketId: client.id };
+    });
     return ids;
 });
 SocketLib.leaveAllRooms = (socket, io) => __awaiter(void 0, void 0, void 0, function* () {
@@ -35,7 +39,7 @@ SocketLib.leaveAllRooms = (socket, io) => __awaiter(void 0, void 0, void 0, func
         for (let room of socket.rooms) {
             if (room !== socket.id) {
                 let ids = yield _a.getAllSocketsInRoom(io, room);
-                ids = ids.filter(id => id !== socket.user);
+                ids = ids.filter((id) => id !== socket.user);
                 io.to(room).emit("onlineUsers", ids);
             }
         }
@@ -56,14 +60,18 @@ SocketLib.leaveRoom = (socket, io, conversationId) => __awaiter(void 0, void 0, 
 });
 SocketLib.getAllSockets = (io) => __awaiter(void 0, void 0, void 0, function* () {
     const client = yield io.fetchSockets();
-    const ids = client.map((client) => { return client.user; });
+    const ids = client.map((client) => {
+        return client.user;
+    });
     return ids;
 });
 SocketLib.getSocketIdFromUserId = (io, userId) => __awaiter(void 0, void 0, void 0, function* () {
     const client = yield io.fetchSockets();
     let socketId;
-    client.map((client) => { if (client.user == userId)
-        socketId = client.id; });
+    client.map((client) => {
+        if (client.user == userId)
+            socketId = client.id;
+    });
     return socketId;
 });
 //room for optimization
@@ -88,53 +96,63 @@ SocketLib.sendMessage = (io, body, conversationId, senderId) => __awaiter(void 0
     let message = new message_1.default({
         conversationId,
         body,
-        senderId
+        senderId,
     });
     message = yield message.save();
-    const msg = yield message_1.default.findById(message._id).populate({ path: "senderId", select: "_id username profilePic" });
+    const msg = yield message_1.default.findById(message._id).populate({
+        path: "senderId",
+        select: "_id username profilePic",
+    });
     io.to(conversationId).emit("new_message", msg);
-    // send notification to all offline users
+    // send notification to users not in conversation
     const onlineSockets = yield _a.getAllSocketsInRoom(io, conversationId);
     const users = conversation.users;
     const proc = users.map((userId) => __awaiter(void 0, void 0, void 0, function* () {
         if (!onlineSockets.includes(userId)) {
             const user = yield users_1.default.findById(userId);
-            if (!user)
-                throw new Error("user not found");
-            if (!user.notifications)
-                user.notifications = [];
-            const notificationExists = user.notifications.find(notification => notification.conversationId == conversationId);
-            if (notificationExists) {
-                user.notifications.map(notification => {
-                    if (notification.conversationId == conversationId && notification.amount) {
-                        notification.amount += 1;
-                        notification.timeStamp = Date.now();
-                    }
+            if (user) {
+                if (!user.notifications)
+                    user.notifications = [];
+                const notificationExists = user.notifications.find((notification) => notification.conversationId == conversationId);
+                if (notificationExists) {
+                    user.notifications.map((notification) => {
+                        if (notification.conversationId == conversationId &&
+                            notification.amount) {
+                            notification.amount += 1;
+                            notification.timeStamp = Date.now();
+                        }
+                    });
+                }
+                else
+                    user.notifications.unshift({
+                        conversationId,
+                        amount: 1,
+                        timeStamp: Date.now(),
+                    });
+                user.notifications.sort((n1, n2) => n1.timeStamp && n2.timeStamp ? n2.timeStamp - n1.timeStamp : 0);
+                yield user.updateOne({
+                    $set: {
+                        notifications: user.notifications,
+                    },
                 });
+                const normalizedNotifcations = yield helpers_1.default.getNormalizedNotifications(userId);
+                const socketId = yield _a.getSocketIdFromUserId(io, userId);
+                if (socketId)
+                    io.to(socketId).emit("new_notification", normalizedNotifcations);
             }
-            else
-                user.notifications.unshift({ conversationId, amount: 1, timeStamp: Date.now() });
-            user.notifications.sort((n1, n2) => (n1.timeStamp && n2.timeStamp) ? n2.timeStamp - n1.timeStamp : 0);
-            yield user.updateOne({ $set: {
-                    notifications: user.notifications
-                } });
-            const normalizedNotifcations = yield helpers_1.default.getNormalizedNotifications(userId);
-            const socketId = yield _a.getSocketIdFromUserId(io, userId);
-            if (socketId)
-                io.to(socketId).emit("new_notification", normalizedNotifcations);
         }
     }));
     yield Promise.all(proc);
 });
 SocketLib.updateLastSeen = (email) => __awaiter(void 0, void 0, void 0, function* () {
     yield users_1.default.findByIdAndUpdate(email, {
-        $set: { lastSeen: Date.now() }
+        $set: { lastSeen: Date.now() },
     });
 });
 SocketLib.getUserGroupKey = (email, conversationId) => __awaiter(void 0, void 0, void 0, function* () {
     const user = yield users_1.default.findById(email);
     if (user && user.conversations) {
-        const conversation = user.conversationKeys.find(conversation => conversation.conversationId == conversationId);
+        const conversation = user.conversationKeys.find((conversation) => conversation.conversationId == conversationId);
         if (!conversation)
             throw new Error("unauthorized user");
         return conversation.groupKey;
@@ -152,14 +170,17 @@ SocketLib.getPreviousMessages = (conversationId, socket) => __awaiter(void 0, vo
                     const proc = messages.map((message) => __awaiter(void 0, void 0, void 0, function* () {
                         if (message.status !== "read") {
                             yield message_1.default.findByIdAndUpdate(message._id, {
-                                $set: { status: "read" }
+                                $set: { status: "read" },
                             });
                         }
                     }));
                     yield Promise.all(proc);
                 }
             }
-            const updatedPreviousMessages = yield conversations_1.default.findById(conversationId).populate({ path: "messages", populate: { path: "senderId", select: "_id username profilePic" } });
+            const updatedPreviousMessages = yield conversations_1.default.findById(conversationId).populate({
+                path: "messages",
+                populate: { path: "senderId", select: "_id username profilePic" },
+            });
             return updatedPreviousMessages === null || updatedPreviousMessages === void 0 ? void 0 : updatedPreviousMessages.messages;
         }
     }
@@ -172,12 +193,12 @@ SocketLib.clearNotifications = (conversationId, socket) => __awaiter(void 0, voi
         const user = yield users_1.default.findById(socket.user);
         if (!user)
             throw new Error("user not found");
-        const notifications = user.notifications.filter(notification => notification.conversationId !== conversationId);
+        const notifications = user.notifications.filter((notification) => notification.conversationId !== conversationId);
         yield user.updateOne({ $set: { notifications } });
         socket.emit("notification", notifications);
     }
     catch (error) {
-        socket.emit("clearNotification_error", error);
+        socket.emit("clearNotifications_error", error);
     }
 });
 SocketLib.notifyOnline = (socket, io) => __awaiter(void 0, void 0, void 0, function* () {
@@ -194,7 +215,7 @@ SocketLib.notifyOnline = (socket, io) => __awaiter(void 0, void 0, void 0, funct
         yield Promise.all(process);
     }
     catch (error) {
-        socket.emit("botifyOnline_error", error);
+        socket.emit("notifyOnline_error", error);
     }
 });
 SocketLib.notifyOffline = (socket, io) => __awaiter(void 0, void 0, void 0, function* () {
@@ -220,7 +241,7 @@ SocketLib.signalCall = (offer, conversationId, socket, io) => __awaiter(void 0, 
         return socket.emit("offerSignalError", new Error("socket does not exist"));
     if (conversation.type == "group")
         return socket.emit("offerSignalError", new Error("socket does not exist"));
-    const receiver = conversation.users.filter(user => user !== socket.user)[0];
+    const receiver = conversation.users.filter((user) => user !== socket.user)[0];
     if (receiver) {
         const recieverSocketId = yield _a.getSocketIdFromUserId(io, receiver);
         if (!recieverSocketId)
@@ -234,7 +255,7 @@ SocketLib.signalIceCandidate = (iceCandidate, conversationId, socket, io) => __a
         return socket.emit("iceCandidateSignalError", new Error("socket does not exist"));
     if (conversation.type == "group")
         return socket.emit("iceCandidateSignalError", new Error("socket does not exist"));
-    const receiver = conversation.users.filter(user => user !== socket.user)[0];
+    const receiver = conversation.users.filter((user) => user !== socket.user)[0];
     if (receiver) {
         const recieverSocketId = yield _a.getSocketIdFromUserId(io, receiver);
         if (!recieverSocketId)
@@ -248,12 +269,40 @@ SocketLib.signalResponse = (answer, conversationId, socket, io) => __awaiter(voi
         return socket.emit("replySignalError", new Error("socket does not exist"));
     if (conversation.type == "group")
         return socket.emit("replySignalError", new Error("socket does not exist"));
-    const receiver = conversation.users.filter(user => user !== socket.user)[0];
+    const receiver = conversation.users.filter((user) => user !== socket.user)[0];
     if (receiver) {
         const recieverSocketId = yield _a.getSocketIdFromUserId(io, receiver);
         if (!recieverSocketId)
             return socket.emit("replySignalError", new Error("user unavailable"));
         io.to(recieverSocketId).emit("call_response", answer);
+    }
+});
+SocketLib.rejectCall = (conversationId, io, socket) => __awaiter(void 0, void 0, void 0, function* () {
+    const conversation = yield conversations_1.default.findById(conversationId);
+    if (!conversation) {
+        return socket.emit("rejectCallError", new Error("conversation does not exist"));
+    }
+    const receiver = conversation.users.filter((user) => user !== socket.user)[0];
+    if (receiver) {
+        const receiverSocketId = yield _a.getSocketIdFromUserId(io, receiver);
+        if (!receiverSocketId) {
+            return socket.emit("rejectCallError", new Error("receiver not online"));
+        }
+        io.to(receiverSocketId).emit("call_rejected");
+    }
+});
+SocketLib.callTimeout = (conversationId, io, socket) => __awaiter(void 0, void 0, void 0, function* () {
+    const conversation = yield conversations_1.default.findById(conversationId);
+    if (!conversation) {
+        return socket.emit("callTimeoutError", new Error("conversation does not exist"));
+    }
+    const receiver = conversation.users.filter((user) => user !== socket.user)[0];
+    if (receiver) {
+        const receiverSocketId = yield _a.getSocketIdFromUserId(io, receiver);
+        if (!receiverSocketId) {
+            return socket.emit("callTimeoutError", new Error("receiver not online"));
+        }
+        io.to(receiverSocketId).emit("call_timeout");
     }
 });
 exports.default = SocketLib;

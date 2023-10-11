@@ -101,6 +101,24 @@ const socketHandler = (io) => {
                 socket.emit("signaling_error", error);
             }
         }));
+        socket.on("call_rejected", ({ conversationId }) => __awaiter(void 0, void 0, void 0, function* () {
+            try {
+                yield socket_1.default.rejectCall(conversationId, io, socket);
+            }
+            catch (error) {
+                console.log(error);
+                socket.emit("rejectCallError", error);
+            }
+        }));
+        socket.on("call_timeout", ({ conversationId }) => __awaiter(void 0, void 0, void 0, function* () {
+            try {
+                yield socket_1.default.callTimeout(conversationId, io, socket);
+            }
+            catch (error) {
+                console.log(error);
+                socket.emit("callTimeoutError");
+            }
+        }));
     }));
 };
 exports.default = socketHandler;
