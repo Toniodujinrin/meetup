@@ -106,11 +106,11 @@ class SocketLib {
       senderId,
     });
     message = await message.save();
-    const msg = await Message.findById(message._id).populate({
+    const _message = await message.populate({
       path: "senderId",
       select: "_id username profilePic",
     });
-    io.to(conversationId).emit("new_message", msg);
+    io.to(conversationId).emit("new_message", _message);
 
     // send notification to users not in conversation
 

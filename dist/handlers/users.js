@@ -44,14 +44,23 @@ const helpers_1 = __importDefault(require("../lib/helpers"));
 const images_1 = __importDefault(require("../lib/images"));
 const { userEmiter } = emiters_1.default;
 const encryption = new encryption_1.default();
-const { createUserSchema, verifyAccountSchema, verifyEmailSchema, getUserSchema, updateUserSchema, searchUserSchema, uploadImageSchema } = users_1.userSchemas;
+const { createUserSchema, verifyAccountSchema, verifyEmailSchema, getUserSchema, updateUserSchema, searchUserSchema, uploadImageSchema, } = users_1.userSchemas;
 userEmiter.on("get user", ({ params, res }) => __awaiter(void 0, void 0, void 0, function* () {
     const { error } = getUserSchema.validate(params);
     if (error)
         return res.status(http_status_codes_1.StatusCodes.BAD_REQUEST).send(error.message);
     const { email } = params;
     try {
-        const user = yield users_1.default.findOne({ _id: email, isVerified: true }).select({ username: 1, firstName: 1, lastName: 1, lastSeen: 1, resgistration: 1, phone: 1, boi: 1, profilePic: 1 });
+        const user = yield users_1.default.findOne({ _id: email, isVerified: true }).select({
+            username: 1,
+            firstName: 1,
+            lastName: 1,
+            lastSeen: 1,
+            resgistration: 1,
+            phone: 1,
+            boi: 1,
+            profilePic: 1,
+        });
         if (user)
             res.status(http_status_codes_1.StatusCodes.OK).json(user);
         else
@@ -63,7 +72,16 @@ userEmiter.on("get user", ({ params, res }) => __awaiter(void 0, void 0, void 0,
 }));
 userEmiter.on("get self", ({ req, res }) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const user = yield users_1.default.findById(req.userId).select({ username: 1, firstName: 1, lastName: 1, lastSeen: 1, registration: 1, phone: 1, bio: 1, profilePic: 1 });
+        const user = yield users_1.default.findById(req.userId).select({
+            username: 1,
+            firstName: 1,
+            lastName: 1,
+            lastSeen: 1,
+            registration: 1,
+            phone: 1,
+            bio: 1,
+            profilePic: 1,
+        });
         res.status(http_status_codes_1.StatusCodes.OK).json(user);
     }
     catch (error) {
@@ -85,14 +103,14 @@ userEmiter.on("create user", ({ req, res }) => __awaiter(void 0, void 0, void 0,
             const hashedPassword = helpers_1.default.passwordHasher(password);
             user = new users_1.default({
                 _id: email,
-                password: hashedPassword
+                password: hashedPassword,
             });
             yield user.save();
             const otp = yield helpers_1.default.OTPSender(email, 5);
             if (otp) {
                 const otpObject = new otps_1.default({
                     _id: otp,
-                    email
+                    email,
                 });
                 yield otpObject.save();
             }
@@ -100,10 +118,13 @@ userEmiter.on("create user", ({ req, res }) => __awaiter(void 0, void 0, void 0,
                 _id: user._id,
                 emailVerified: user.emailVerified,
                 accountVerified: user.accountVerified,
-                isVerified: user.isVerified
+                isVerified: user.isVerified,
             };
             const token = helpers_1.default.generateUserToken(payload);
-            res.header("authorization", token).status(http_status_codes_1.StatusCodes.CREATED).json({ status: "success" });
+            res
+                .header("authorization", token)
+                .status(http_status_codes_1.StatusCodes.CREATED)
+                .json({ status: "success" });
         }
     }
     catch (err) {
@@ -131,11 +152,19 @@ userEmiter.on("verify account", ({ req, res }) => __awaiter(void 0, void 0, void
                 phone,
                 publicKey,
                 bio,
-                keyPair: encryptedKeyPair
-            }
+                keyPair: encryptedKeyPair,
+            },
         });
-        const token = helpers_1.default.generateUserToken({ _id: req.userId, isVerified: true, emailVerified: true, accountVerified: true });
-        res.header("authorization", token).status(http_status_codes_1.StatusCodes.OK).send({ status: "success" });
+        const token = helpers_1.default.generateUserToken({
+            _id: req.userId,
+            isVerified: true,
+            emailVerified: true,
+            accountVerified: true,
+        });
+        res
+            .header("authorization", token)
+            .status(http_status_codes_1.StatusCodes.OK)
+            .send({ status: "success" });
     }
     catch (error) {
         res.status(http_status_codes_1.StatusCodes.INTERNAL_SERVER_ERROR).send("server error");
@@ -154,10 +183,18 @@ userEmiter.on("verify email", ({ req, res }) => __awaiter(void 0, void 0, void 0
             yield req.user.updateOne({
                 $set: {
                     emailVerified: true,
-                }
+                },
             });
-            const token = helpers_1.default.generateUserToken({ _id: req.userId, isVerified: false, emailVerified: true, accountVerified: false });
-            res.header("authorization", token).status(http_status_codes_1.StatusCodes.OK).json({ status: "success" });
+            const token = helpers_1.default.generateUserToken({
+                _id: req.userId,
+                isVerified: false,
+                emailVerified: true,
+                accountVerified: false,
+            });
+            res
+                .header("authorization", token)
+                .status(http_status_codes_1.StatusCodes.OK)
+                .json({ status: "success" });
         }
         else
             return res.status(http_status_codes_1.StatusCodes.BAD_REQUEST).send("Incorrect code");
@@ -175,7 +212,7 @@ userEmiter.on("resend otp", ({ req, res }) => __awaiter(void 0, void 0, void 0, 
         if (otp) {
             const otpObject = new otps_1.default({
                 _id: otp,
-                email: req.user
+                email: req.user,
             });
             otpObject.save();
             res.status(http_status_codes_1.StatusCodes.OK).json({ status: "success" });
@@ -189,22 +226,30 @@ userEmiter.on("resend otp", ({ req, res }) => __awaiter(void 0, void 0, void 0, 
 }));
 userEmiter.on("get conversations", ({ req, res }) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const response = yield users_1.default.findById(req.userId).populate({ path: "conversations", populate: { path: "messages" } });
+        const response = yield users_1.default.findById(req.userId).populate({
+            path: "conversations",
+            populate: { path: "messages" },
+        });
         if (!response)
             return res.status(http_status_codes_1.StatusCodes.NOT_FOUND);
         let editedConversations = response.conversations.map((conversationId) => __awaiter(void 0, void 0, void 0, function* () {
             const normalizedConversation = yield helpers_1.default.normalizeConversation(conversationId, req.userId);
-            console.log(normalizedConversation);
             return normalizedConversation;
         }));
         let result = yield Promise.all(editedConversations);
-        const resultWithMessages = result.filter(conversation => { if (conversation) {
-            return conversation.lastMessage;
-        } });
-        resultWithMessages.sort((r1, r2) => (r1 && r2 && r1.lastMessage && r2.lastMessage) ? r2.lastMessage.timeStamp - r1.lastMessage.timeStamp : 0);
-        const resultWithoutMessages = result.filter(conversation => { if (conversation) {
-            return !conversation.lastMessage;
-        } });
+        const resultWithMessages = result.filter((conversation) => {
+            if (conversation) {
+                return conversation.lastMessage;
+            }
+        });
+        resultWithMessages.sort((r1, r2) => r1 && r2 && r1.lastMessage && r2.lastMessage
+            ? r2.lastMessage.timeStamp - r1.lastMessage.timeStamp
+            : 0);
+        const resultWithoutMessages = result.filter((conversation) => {
+            if (conversation) {
+                return !conversation.lastMessage;
+            }
+        });
         result = [...resultWithMessages, ...resultWithoutMessages];
         res.status(http_status_codes_1.StatusCodes.OK).json(result);
     }
@@ -220,12 +265,16 @@ userEmiter.on("add user", ({ req, res }) => __awaiter(void 0, void 0, void 0, fu
             return res.status(http_status_codes_1.StatusCodes.BAD_REQUEST).send(error.message);
         const { email } = req.params;
         if (email == req.userId)
-            return res.status(http_status_codes_1.StatusCodes.BAD_REQUEST).send("you cannot add yourself to contacts");
+            return res
+                .status(http_status_codes_1.StatusCodes.BAD_REQUEST)
+                .send("you cannot add yourself to contacts");
         const user = yield users_1.default.findById(email);
         if (!user)
             return res.status(http_status_codes_1.StatusCodes.NOT_FOUND).send("user not found");
         if (req.user.pendingContactsSent.includes(email))
-            return res.status(http_status_codes_1.StatusCodes.BAD_REQUEST).send("you have already send a request to this user");
+            return res
+                .status(http_status_codes_1.StatusCodes.BAD_REQUEST)
+                .send("you have already send a request to this user");
         if (req.user.contacts.includes(email))
             return res.status(http_status_codes_1.StatusCodes.BAD_REQUEST).send("user already a contact");
         yield req.user.updateOne({ $push: { pendingContactsSent: email } });
@@ -246,16 +295,18 @@ userEmiter.on("accept Request", ({ req, res }) => __awaiter(void 0, void 0, void
         if (!user)
             return res.status(http_status_codes_1.StatusCodes.NOT_FOUND).send("user not found");
         if (!req.user.pendingContactsReceived.includes(email))
-            return res.status(http_status_codes_1.StatusCodes.BAD_REQUEST).send("user has not sent you a contact reqquest");
-        const pendingContactsReceived = req.user.pendingContactsReceived.filter(item => item != email);
-        const pendingContactsSent = user.pendingContactsSent.filter(item => item !== req.userId);
+            return res
+                .status(http_status_codes_1.StatusCodes.BAD_REQUEST)
+                .send("user has not sent you a contact reqquest");
+        const pendingContactsReceived = req.user.pendingContactsReceived.filter((item) => item != email);
+        const pendingContactsSent = user.pendingContactsSent.filter((item) => item !== req.userId);
         yield req.user.updateOne({
             $push: { contacts: email },
-            $set: { pendingContactsReceived }
+            $set: { pendingContactsReceived },
         });
         yield user.updateOne({
             $push: { contacts: req.userId },
-            $set: { pendingContactsSent }
+            $set: { pendingContactsSent },
         });
         res.status(http_status_codes_1.StatusCodes.OK).json({ status: "success" });
     }
@@ -266,7 +317,10 @@ userEmiter.on("accept Request", ({ req, res }) => __awaiter(void 0, void 0, void
 }));
 userEmiter.on("get contacts", ({ req, res }) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        let contacts = yield users_1.default.findById(req.userId).populate({ path: "contacts", select: "username _id profilePic" });
+        let contacts = yield users_1.default.findById(req.userId).populate({
+            path: "contacts",
+            select: "username _id profilePic",
+        });
         res.status(http_status_codes_1.StatusCodes.OK).json(contacts === null || contacts === void 0 ? void 0 : contacts.contacts);
     }
     catch (error) {
@@ -287,7 +341,10 @@ userEmiter.on("update user", ({ req, res }) => __awaiter(void 0, void 0, void 0,
 }));
 userEmiter.on("get pending requests sent", ({ req, res }) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        let contacts = yield users_1.default.findById(req.userId).populate({ path: "pendingContactsSent", select: "username _id profilePic" });
+        let contacts = yield users_1.default.findById(req.userId).populate({
+            path: "pendingContactsSent",
+            select: "username _id profilePic",
+        });
         res.status(http_status_codes_1.StatusCodes.OK).json(contacts === null || contacts === void 0 ? void 0 : contacts.pendingContactsSent);
     }
     catch (error) {
@@ -296,7 +353,10 @@ userEmiter.on("get pending requests sent", ({ req, res }) => __awaiter(void 0, v
 }));
 userEmiter.on("get pending requests received", ({ req, res }) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        let contacts = yield users_1.default.findById(req.userId).populate({ path: "pendingContactsReceived", select: "username _id profilePic" });
+        let contacts = yield users_1.default.findById(req.userId).populate({
+            path: "pendingContactsReceived",
+            select: "username _id profilePic",
+        });
         res.status(http_status_codes_1.StatusCodes.OK).json(contacts === null || contacts === void 0 ? void 0 : contacts.pendingContactsReceived);
     }
     catch (error) {
@@ -312,7 +372,8 @@ userEmiter.on("search user", ({ req, res }) => __awaiter(void 0, void 0, void 0,
         const expression = `.*${email}.*`;
         const regex = new RegExp(expression, "g");
         const result = yield users_1.default.find({
-            _id: { $regex: regex }, isVerified: true
+            _id: { $regex: regex },
+            isVerified: true,
         }).select({ username: 1, profilePic: 1 });
         res.status(http_status_codes_1.StatusCodes.OK).json(result);
     }
@@ -331,7 +392,7 @@ userEmiter.on("upload image", ({ req, res }) => __awaiter(void 0, void 0, void 0
             yield new images_1.default().deleteImage(req.user.profilePic.public_id);
         }
         yield req.user.updateOne({
-            $set: { profilePic: imageObject }
+            $set: { profilePic: imageObject },
         });
         res.status(http_status_codes_1.StatusCodes.OK).json({ status: "success" });
     }

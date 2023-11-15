@@ -17,9 +17,10 @@ const conversations_1 = __importDefault(require("./conversations"));
 const messageSchema = new mongoose_1.default.Schema({
     conversationId: { type: String, required: true },
     timeStamp: { type: Number, default: Date.now },
+    type: { type: String, default: "text", enum: ["text", "notification"] },
     status: { type: String, default: "delivered", enum: ["read", "delivered"] },
     senderId: { type: String, ref: "User" },
-    body: String
+    body: String,
 });
 messageSchema.post("save", function (doc) {
     return __awaiter(this, void 0, void 0, function* () {
@@ -27,7 +28,7 @@ messageSchema.post("save", function (doc) {
             const messageId = doc._id;
             const conversationId = doc.conversationId;
             yield conversations_1.default.findByIdAndUpdate(conversationId, {
-                $push: { messages: messageId }
+                $push: { messages: messageId },
             });
         }
         catch (error) {
