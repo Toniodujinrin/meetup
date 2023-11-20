@@ -99,17 +99,11 @@ SocketLib.sendMessage = (io, body, conversationId, senderId) => __awaiter(void 0
         senderId,
     });
     message = yield message.save();
-    const ms = yield message.populate({
+    const _message = yield message.populate({
         path: "senderId",
         select: "_id username profilePic",
     });
-    console.log(ms);
-    const msg = yield message_1.default.findById(message._id).populate({
-        path: "senderId",
-        select: "_id username profilePic",
-    });
-    console.log(msg);
-    io.to(conversationId).emit("new_message", msg);
+    io.to(conversationId).emit("new_message", _message);
     // send notification to users not in conversation
     const onlineSockets = yield _a.getAllSocketsInRoom(io, conversationId);
     const users = conversation.users;
