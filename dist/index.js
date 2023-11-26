@@ -32,7 +32,7 @@ if (process.env.NODE_ENV !== "development") {
         cors: {
             origin: [
                 "https://meet-up-client.vercel.app",
-                "http://localhost:3000/",
+                "http://localhost:3000",
                 "http://10.0.0.84:3000",
             ],
             methods: ["GET", "POST"],
