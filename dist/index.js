@@ -27,7 +27,7 @@ const httpsServer = https_1.default.createServer({
     ca: process.env.CA,
 }, app);
 let io;
-if (process.env.NODE_ENV !== "development") {
+if (process.env.NODE_ENV == "development") {
     io = new socket_io_1.Server(httpsServer, {
         cors: {
             origin: [
