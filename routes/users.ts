@@ -55,8 +55,8 @@ router.post("/", (req, res) => {
 router.put("/", authorization, restriction, (req, res) => {
   userEmiter.emit("update user", { req, res });
 });
-router.delete("/deleteImage", authorization, restriction, (req, res) => {
-  userEmiter.emit("remove image", { req, res });
+router.delete("/removeProfilePic", authorization, restriction, (req, res) => {
+  userEmiter.emit("remove profile pic", { req, res });
 });
 router.delete("/", authorization, restriction, (req, res) => {
   userEmiter.emit("delete account", { req, res });

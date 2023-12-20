@@ -383,7 +383,7 @@ userEmiter.on("upload image", async ({ req, res }: ReqResPair) => {
   }
 });
 
-userEmiter.on("remove image", async ({ req, res }: ReqResPair) => {
+userEmiter.on("remove profile pic", async ({ req, res }: ReqResPair) => {
   try {
     const { user } = req;
     if (!user.profilePic)
@@ -392,10 +392,12 @@ userEmiter.on("remove image", async ({ req, res }: ReqResPair) => {
         .send("no existing profile pick found");
     await new ImageLib().deleteImage(user.profilePic.public_id);
     if (!user.defaultProfileColor) {
-      const profileColor = Helpers.generateHexColorString();
-      user.defaultProfileColor = profileColor;
+      const defaultProfileColor = Helpers.generateHexColorString();
+      user.defaultProfileColor = defaultProfileColor;
     }
+    user.profilePic = null;
     await user.updateOne(user);
+    res.status(StatusCodes.OK).json({ status: "success" });
   } catch (error) {
     console.log(error);
     res.status(StatusCodes.INTERNAL_SERVER_ERROR).send("server error");

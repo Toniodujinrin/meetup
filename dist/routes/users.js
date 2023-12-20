@@ -58,8 +58,8 @@ router.post("/", (req, res) => {
 router.put("/", authourization_1.default, restriction_1.default, (req, res) => {
     userEmiter.emit("update user", { req, res });
 });
-router.delete("/deleteImage", authourization_1.default, restriction_1.default, (req, res) => {
-    userEmiter.emit("remove image", { req, res });
+router.delete("/removeProfilePic", authourization_1.default, restriction_1.default, (req, res) => {
+    userEmiter.emit("remove profile pic", { req, res });
 });
 router.delete("/", authourization_1.default, restriction_1.default, (req, res) => {
     userEmiter.emit("delete account", { req, res });

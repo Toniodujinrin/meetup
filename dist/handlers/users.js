@@ -408,7 +408,7 @@ userEmiter.on("upload image", ({ req, res }) => __awaiter(void 0, void 0, void 0
         res.status(http_status_codes_1.StatusCodes.INTERNAL_SERVER_ERROR).send("server error");
     }
 }));
-userEmiter.on("remove image", ({ req, res }) => __awaiter(void 0, void 0, void 0, function* () {
+userEmiter.on("remove profile pic", ({ req, res }) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const { user } = req;
         if (!user.profilePic)
@@ -417,10 +417,12 @@ userEmiter.on("remove image", ({ req, res }) => __awaiter(void 0, void 0, void 0
                 .send("no existing profile pick found");
         yield new images_1.default().deleteImage(user.profilePic.public_id);
         if (!user.defaultProfileColor) {
-            const profileColor = helpers_1.default.generateHexColorString();
-            user.defaultProfileColor = profileColor;
+            const defaultProfileColor = helpers_1.default.generateHexColorString();
+            user.defaultProfileColor = defaultProfileColor;
         }
+        user.profilePic = null;
         yield user.updateOne(user);
+        res.status(http_status_codes_1.StatusCodes.OK).json({ status: "success" });
     }
     catch (error) {
         console.log(error);
