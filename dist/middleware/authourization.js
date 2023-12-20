@@ -40,6 +40,8 @@ const authorization = (req, res, next) => __awaiter(void 0, void 0, void 0, func
         }
     }
     else
-        res.status(http_status_codes_1.StatusCodes.UNAUTHORIZED).send("No authorization token recieved ");
+        res
+            .status(http_status_codes_1.StatusCodes.UNAUTHORIZED)
+            .send("No authorization token recieved ");
 });
 exports.default = authorization;

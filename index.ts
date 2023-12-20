@@ -9,15 +9,9 @@ import socketHandler from "./server/socket";
 
 require("dotenv").config();
 Processes.envChecker();
-
 conncectToDatabase();
-Processes.otpProcess();
-Processes.messageProcess();
-Processes.conversationProcess();
-Processes.notificationProcess();
 const app = express();
 startup(app);
-
 const httpServer = http.createServer(app);
 const httpsServer = https.createServer(
   {
@@ -30,6 +24,7 @@ const httpsServer = https.createServer(
 
 let io;
 if (process.env.NODE_ENV !== "development") {
+  console.log("\x1b[35m%s\x1b[0m", "[+] production socket open");
   io = new Server(httpsServer, {
     cors: {
       origin: [
@@ -42,7 +37,7 @@ if (process.env.NODE_ENV !== "development") {
     },
   });
 } else {
-  console.log("develpment socket open");
+  console.log("\x1b[35m%s\x1b[0m", "[+] develpment socket open");
   io = new Server(httpServer, {
     cors: {
       origin: [

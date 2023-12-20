@@ -9,10 +9,16 @@ const auth_1 = __importDefault(require("../routes/auth"));
 const conversations_1 = __importDefault(require("../routes/conversations"));
 const cors_1 = __importDefault(require("cors"));
 const body_parser_1 = __importDefault(require("body-parser"));
+const processes_1 = __importDefault(require("../lib/processes"));
 const startup = (app) => {
+    processes_1.default.otpProcess();
+    processes_1.default.messageProcess();
+    processes_1.default.conversationProcess();
+    processes_1.default.notificationProcess();
+    //Processes.tempProcess();
     app.use(express_1.default.static("public"));
     app.use((0, cors_1.default)({
-        exposedHeaders: ["authorization"]
+        exposedHeaders: ["authorization"],
     }));
     app.use(body_parser_1.default.json({ limit: "50mb" }));
     app.use(body_parser_1.default.urlencoded({

@@ -14,10 +14,6 @@ const socket_1 = __importDefault(require("./server/socket"));
 require("dotenv").config();
 processes_1.default.envChecker();
 (0, mongoconnect_1.default)();
-processes_1.default.otpProcess();
-processes_1.default.messageProcess();
-processes_1.default.conversationProcess();
-processes_1.default.notificationProcess();
 const app = (0, express_1.default)();
 (0, startup_1.default)(app);
 const httpServer = http_1.default.createServer(app);
@@ -28,6 +24,7 @@ const httpsServer = https_1.default.createServer({
 }, app);
 let io;
 if (process.env.NODE_ENV !== "development") {
+    console.log("\x1b[35m%s\x1b[0m", "[+] production socket open");
     io = new socket_io_1.Server(httpsServer, {
         cors: {
             origin: [
@@ -41,7 +38,7 @@ if (process.env.NODE_ENV !== "development") {
     });
 }
 else {
-    console.log("develpment socket open");
+    console.log("\x1b[35m%s\x1b[0m", "[+] develpment socket open");
     io = new socket_io_1.Server(httpServer, {
         cors: {
             origin: [

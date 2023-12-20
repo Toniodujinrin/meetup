@@ -179,7 +179,10 @@ SocketLib.getPreviousMessages = (conversationId, socket) => __awaiter(void 0, vo
             }
             const updatedPreviousMessages = yield conversations_1.default.findById(conversationId).populate({
                 path: "messages",
-                populate: { path: "senderId", select: "_id username profilePic" },
+                populate: {
+                    path: "senderId",
+                    select: "_id username profilePic defaultProfileColor",
+                },
             });
             return updatedPreviousMessages === null || updatedPreviousMessages === void 0 ? void 0 : updatedPreviousMessages.messages;
         }

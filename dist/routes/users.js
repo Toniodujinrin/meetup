@@ -28,7 +28,10 @@ router.get("/pending/sent", authourization_1.default, restriction_1.default, (re
 router.get("/pending/received", authourization_1.default, restriction_1.default, (req, res) => {
     userEmiter.emit("get pending requests received", { req, res });
 });
-router.get('/:email', (req, res) => {
+router.get("/notifications", authourization_1.default, restriction_1.default, (req, res) => {
+    userEmiter.emit("get notifications", { req, res });
+});
+router.get("/:email", (req, res) => {
     userEmiter.emit("get user", { params: req.params, res });
 });
 router.post("/uploadImage", authourization_1.default, restriction_1.default, (req, res) => {
@@ -54,6 +57,9 @@ router.post("/", (req, res) => {
 });
 router.put("/", authourization_1.default, restriction_1.default, (req, res) => {
     userEmiter.emit("update user", { req, res });
+});
+router.delete("/deleteImage", authourization_1.default, restriction_1.default, (req, res) => {
+    userEmiter.emit("remove image", { req, res });
 });
 router.delete("/", authourization_1.default, restriction_1.default, (req, res) => {
     userEmiter.emit("delete account", { req, res });

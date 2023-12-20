@@ -42,7 +42,7 @@ Helpers.OTPSender = (email, length) => __awaiter(void 0, void 0, void 0, functio
         receiver: email,
         subject: "OTP for Sign up",
         from: "Meet Up",
-        text: `use this code as your one time password ${result}`
+        text: `use this code as your one time password ${result}`,
     };
     try {
         yield axios_1.default.post(`${process.env.EMAIL_SERVER}/send`, payload);
@@ -73,26 +73,38 @@ Helpers.checkIfSubset = (arr1, arr2) => {
     return isSubset;
 };
 Helpers.normalizeConversation = (conversationId, userId) => __awaiter(void 0, void 0, void 0, function* () {
-    const conversation = yield conversations_1.default.findById(conversationId).populate("messages");
-    let _conversation = {};
+    const conversation = yield conversations_1.default.findById(conversationId)
+        .populate({ path: "messages" })
+        .populate({
+        path: "users",
+        select: "username _id lastSeen profilePic defaultProfileColor",
+    });
     if (!conversation)
         return null;
-    if (conversation.type == "single") {
-        const otherUser = conversation.users.filter((user) => user != userId)[0];
-        const otherUserObject = yield users_1.default.findById(otherUser);
-        if (!otherUserObject)
+    let _conversation = lodash_1.default.pick(conversation, [
+        "type",
+        "users",
+        "name",
+        "created",
+        "conversationPic",
+        "lastSeen",
+        "_id",
+        "defaultConversationColor",
+        "lastMessage",
+    ]);
+    if (_conversation.type == "single") {
+        const otherUser = conversation.users.filter((user) => user._id != userId)[0];
+        if (!otherUser)
             return null;
-        _conversation.name = otherUserObject.username;
-        _conversation.conversationPic = otherUserObject.profilePic ? otherUserObject.profilePic : {};
+        _conversation.name = otherUser.username;
+        _conversation.conversationPic = otherUser.profilePic;
+        _conversation.lastSeen = otherUser.lastSeen;
+        _conversation.defaultConversationColor = otherUser.defaultProfileColor;
     }
-    else {
-        _conversation.conversationPic = conversation.conversationPic;
-        _conversation.name = conversation.name;
-    }
-    _conversation.type = conversation.type;
-    _conversation._id = conversation._id;
-    _conversation.users = conversation.users;
-    _conversation.lastMessage = conversation.messages.length > 0 ? conversation.messages[conversation.messages.length - 1] : undefined;
+    _conversation.lastMessage =
+        conversation.messages.length > 0
+            ? conversation.messages[conversation.messages.length - 1]
+            : undefined;
     return _conversation;
 });
 Helpers.getNormalizedNotifications = (userId) => __awaiter(void 0, void 0, void 0, function* () {
@@ -100,7 +112,12 @@ Helpers.getNormalizedNotifications = (userId) => __awaiter(void 0, void 0, void 
     if (user) {
         let normalizedNotifcations = user.notifications.map((notification) => __awaiter(void 0, void 0, void 0, function* () {
             let _notification = {};
-            _notification = lodash_1.default.pick(notification, ["amount", "conversationId", "timeStamp", "_id"]);
+            _notification = lodash_1.default.pick(notification, [
+                "amount",
+                "conversationId",
+                "timeStamp",
+                "_id",
+            ]);
             _notification.conversationDetails = yield _a.normalizeConversation(notification.conversationId, userId);
             return _notification;
         }));
@@ -108,4 +125,59 @@ Helpers.getNormalizedNotifications = (userId) => __awaiter(void 0, void 0, void 
         return _normalizedNotifcations;
     }
 });
+Helpers.generateHexColorString = () => {
+    const possibleColors = [
+        "#59AB83",
+        "#79A470",
+        "#AA5CBB",
+        "#5CB15F",
+        "#6888B5",
+        "#B48377",
+        "#90A2BF",
+        "#6D5CB3",
+        "#93816B",
+        "#876C8B",
+        "#895460",
+        "#8CA169",
+        "#8B7168",
+        "#935269",
+        "#6F8ABE",
+        "#C7C761",
+        "#7069B8",
+        "#B3B686",
+        "#858FAE",
+        "#A898B0",
+        "#ACA471",
+        "#6B8499",
+        "#8367C5",
+        "#52B0C4",
+        "#B38379",
+        "#66A2AB",
+        "#BD5D9A",
+        "#AE7264",
+        "#80915E",
+        "#A0535A",
+        "#9B8661",
+        "#597F65",
+        "#C29476",
+        "#6D6E57",
+        "#6C6984",
+        "#7F6E64",
+        "#918D5F",
+        "#7DBFC5",
+        "#AF9D5E",
+        "#699795",
+        "#A4829F",
+        "#75B486",
+        "#8E6156",
+        "#988563",
+        "#76719A",
+        "#855EAF",
+        "#C1A16A",
+        "#C0B2BD",
+        "#789C6E",
+    ];
+    const string = possibleColors[Math.floor(Math.random() * possibleColors.length)];
+    return string;
+};
 exports.default = Helpers;

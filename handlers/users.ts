@@ -53,6 +53,7 @@ userEmiter.on("get self", async ({ req, res }: ReqResPair) => {
       phone: 1,
       bio: 1,
       profilePic: 1,
+      defaultProfileColor: 1,
     });
     res.status(StatusCodes.OK).json(user);
   } catch (error) {
@@ -291,7 +292,7 @@ userEmiter.on("get contacts", async ({ req, res }: ReqResPair) => {
   try {
     let contacts = await User.findById(req.userId).populate({
       path: "contacts",
-      select: "username _id profilePic",
+      select: "username _id profilePic defaultProfileColor",
     });
     res.status(StatusCodes.OK).json(contacts?.contacts);
   } catch (error) {
@@ -314,7 +315,7 @@ userEmiter.on("get pending requests sent", async ({ req, res }: ReqResPair) => {
   try {
     let contacts = await User.findById(req.userId).populate({
       path: "pendingContactsSent",
-      select: "username _id profilePic",
+      select: "username _id profilePic defaultProfileColor",
     });
     res.status(StatusCodes.OK).json(contacts?.pendingContactsSent);
   } catch (error) {
@@ -328,7 +329,7 @@ userEmiter.on(
     try {
       let contacts = await User.findById(req.userId).populate({
         path: "pendingContactsReceived",
-        select: "username _id profilePic",
+        select: "username _id profilePic defaultProfileColor",
       });
       res.status(StatusCodes.OK).json(contacts?.pendingContactsReceived);
     } catch (error) {
@@ -347,7 +348,7 @@ userEmiter.on("search user", async ({ req, res }: ReqResPair) => {
     const result = await User.find({
       _id: { $regex: regex },
       isVerified: true,
-    }).select({ username: 1, profilePic: 1 });
+    }).select({ username: 1, profilePic: 1, defaultProfileColor: 1 });
     res.status(StatusCodes.OK).json(result);
   } catch (error) {
     res.status(StatusCodes.INTERNAL_SERVER_ERROR).send("server error");
@@ -363,7 +364,13 @@ userEmiter.on("upload image", async ({ req, res }: ReqResPair) => {
       image,
       "profilePictures"
     );
-    if (req.user.profilePic.public_id) {
+    if (!req.user.defaultProfileColor) {
+      const defaultProfileColor = Helpers.generateHexColorString();
+      await req.user.updateOne({
+        $set: { defaultProfileColor },
+      });
+    }
+    if (req.user.profilePic && req.user.profilePic.public_id) {
       await new ImageLib().deleteImage(req.user.profilePic.public_id);
     }
     await req.user.updateOne({
@@ -376,10 +383,40 @@ userEmiter.on("upload image", async ({ req, res }: ReqResPair) => {
   }
 });
 
+userEmiter.on("remove image", async ({ req, res }: ReqResPair) => {
+  try {
+    const { user } = req;
+    if (!user.profilePic)
+      return res
+        .status(StatusCodes.BAD_REQUEST)
+        .send("no existing profile pick found");
+    await new ImageLib().deleteImage(user.profilePic.public_id);
+    if (!user.defaultProfileColor) {
+      const profileColor = Helpers.generateHexColorString();
+      user.defaultProfileColor = profileColor;
+    }
+    await user.updateOne(user);
+  } catch (error) {
+    console.log(error);
+    res.status(StatusCodes.INTERNAL_SERVER_ERROR).send("server error");
+  }
+});
+
 userEmiter.on("delete account", async ({ req, res }: ReqResPair) => {
   try {
     await User.findOneAndDelete({ _id: req.userId });
     res.status(StatusCodes.OK).json({ status: "success" });
+  } catch (error) {
+    console.log(error);
+    res.status(StatusCodes.INTERNAL_SERVER_ERROR).send("server error");
+  }
+});
+
+userEmiter.on("get notifications", async ({ req, res }: ReqResPair) => {
+  try {
+    const { user } = req;
+    const notifications = user.notifications;
+    res.status(StatusCodes.OK).json(notifications);
   } catch (error) {
     console.log(error);
     res.status(StatusCodes.INTERNAL_SERVER_ERROR).send("server error");

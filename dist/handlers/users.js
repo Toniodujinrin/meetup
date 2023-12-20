@@ -81,6 +81,7 @@ userEmiter.on("get self", ({ req, res }) => __awaiter(void 0, void 0, void 0, fu
             phone: 1,
             bio: 1,
             profilePic: 1,
+            defaultProfileColor: 1,
         });
         res.status(http_status_codes_1.StatusCodes.OK).json(user);
     }
@@ -319,7 +320,7 @@ userEmiter.on("get contacts", ({ req, res }) => __awaiter(void 0, void 0, void 0
     try {
         let contacts = yield users_1.default.findById(req.userId).populate({
             path: "contacts",
-            select: "username _id profilePic",
+            select: "username _id profilePic defaultProfileColor",
         });
         res.status(http_status_codes_1.StatusCodes.OK).json(contacts === null || contacts === void 0 ? void 0 : contacts.contacts);
     }
@@ -343,7 +344,7 @@ userEmiter.on("get pending requests sent", ({ req, res }) => __awaiter(void 0, v
     try {
         let contacts = yield users_1.default.findById(req.userId).populate({
             path: "pendingContactsSent",
-            select: "username _id profilePic",
+            select: "username _id profilePic defaultProfileColor",
         });
         res.status(http_status_codes_1.StatusCodes.OK).json(contacts === null || contacts === void 0 ? void 0 : contacts.pendingContactsSent);
     }
@@ -355,7 +356,7 @@ userEmiter.on("get pending requests received", ({ req, res }) => __awaiter(void 
     try {
         let contacts = yield users_1.default.findById(req.userId).populate({
             path: "pendingContactsReceived",
-            select: "username _id profilePic",
+            select: "username _id profilePic defaultProfileColor",
         });
         res.status(http_status_codes_1.StatusCodes.OK).json(contacts === null || contacts === void 0 ? void 0 : contacts.pendingContactsReceived);
     }
@@ -374,7 +375,7 @@ userEmiter.on("search user", ({ req, res }) => __awaiter(void 0, void 0, void 0,
         const result = yield users_1.default.find({
             _id: { $regex: regex },
             isVerified: true,
-        }).select({ username: 1, profilePic: 1 });
+        }).select({ username: 1, profilePic: 1, defaultProfileColor: 1 });
         res.status(http_status_codes_1.StatusCodes.OK).json(result);
     }
     catch (error) {
@@ -388,7 +389,13 @@ userEmiter.on("upload image", ({ req, res }) => __awaiter(void 0, void 0, void 0
             return res.status(http_status_codes_1.StatusCodes.BAD_REQUEST).send(error.message);
         const { image } = req.body;
         const imageObject = yield new images_1.default().uploadImage(image, "profilePictures");
-        if (req.user.profilePic.public_id) {
+        if (!req.user.defaultProfileColor) {
+            const defaultProfileColor = helpers_1.default.generateHexColorString();
+            yield req.user.updateOne({
+                $set: { defaultProfileColor },
+            });
+        }
+        if (req.user.profilePic && req.user.profilePic.public_id) {
             yield new images_1.default().deleteImage(req.user.profilePic.public_id);
         }
         yield req.user.updateOne({
@@ -401,10 +408,40 @@ userEmiter.on("upload image", ({ req, res }) => __awaiter(void 0, void 0, void 0
         res.status(http_status_codes_1.StatusCodes.INTERNAL_SERVER_ERROR).send("server error");
     }
 }));
+userEmiter.on("remove image", ({ req, res }) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const { user } = req;
+        if (!user.profilePic)
+            return res
+                .status(http_status_codes_1.StatusCodes.BAD_REQUEST)
+                .send("no existing profile pick found");
+        yield new images_1.default().deleteImage(user.profilePic.public_id);
+        if (!user.defaultProfileColor) {
+            const profileColor = helpers_1.default.generateHexColorString();
+            user.defaultProfileColor = profileColor;
+        }
+        yield user.updateOne(user);
+    }
+    catch (error) {
+        console.log(error);
+        res.status(http_status_codes_1.StatusCodes.INTERNAL_SERVER_ERROR).send("server error");
+    }
+}));
 userEmiter.on("delete account", ({ req, res }) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         yield users_1.default.findOneAndDelete({ _id: req.userId });
         res.status(http_status_codes_1.StatusCodes.OK).json({ status: "success" });
+    }
+    catch (error) {
+        console.log(error);
+        res.status(http_status_codes_1.StatusCodes.INTERNAL_SERVER_ERROR).send("server error");
+    }
+}));
+userEmiter.on("get notifications", ({ req, res }) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const { user } = req;
+        const notifications = user.notifications;
+        res.status(http_status_codes_1.StatusCodes.OK).json(notifications);
     }
     catch (error) {
         console.log(error);

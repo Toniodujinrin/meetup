@@ -17,14 +17,25 @@ const message_1 = __importDefault(require("../models/message"));
 const conversations_1 = __importDefault(require("../models/conversations"));
 const otps_1 = __importDefault(require("../models/otps"));
 const users_1 = __importDefault(require("../models/users"));
+const helpers_1 = __importDefault(require("./helpers"));
 class Processes {
 }
 _a = Processes;
 Processes.envChecker = () => {
     console.log("\x1b[33m%s\x1b[0m", "[+] Checking environment variables ...");
     const envVariables = [
-        process.env.PORT, process.env.MONGO_URI, process.env.KEY, process.env.EMAIL_SERVER, process.env.HASHING_SECRET, process.env.CLOUDINARY_NAME, process.env.CLOUDINARY_API_KEY, process.env.CLOUDINARY_API_SECRET,
-        process.env.HTTPS, process.env.SERVER_CERT, process.env.SERVER_KEY, process.env.CLOUDINARY_URL
+        process.env.PORT,
+        process.env.MONGO_URI,
+        process.env.KEY,
+        process.env.EMAIL_SERVER,
+        process.env.HASHING_SECRET,
+        process.env.CLOUDINARY_NAME,
+        process.env.CLOUDINARY_API_KEY,
+        process.env.CLOUDINARY_API_SECRET,
+        process.env.HTTPS,
+        process.env.SERVER_CERT,
+        process.env.SERVER_KEY,
+        process.env.CLOUDINARY_URL,
     ];
     for (let i of envVariables) {
         if (!i) {
@@ -49,7 +60,9 @@ Processes.messageProcess = () => {
 Processes.conversationProcess = () => {
     console.log("\x1b[33m%s\x1b[0m", "[+] Conversation process started ...");
     setInterval(() => __awaiter(void 0, void 0, void 0, function* () {
-        const conversations = yield conversations_1.default.find({ "messages.0": { $exists: true } });
+        const conversations = yield conversations_1.default.find({
+            "messages.0": { $exists: true },
+        });
         if (conversations) {
             const conversationProcess = conversations.map((conversation) => __awaiter(void 0, void 0, void 0, function* () {
                 const obsoleteMessages = [];
@@ -59,12 +72,12 @@ Processes.conversationProcess = () => {
                     }
                 }));
                 yield Promise.all(findObsoleteMessagesProcess);
-                const filteredConversationMessages = conversation.messages.filter(message => !obsoleteMessages.includes(message));
+                const filteredConversationMessages = conversation.messages.filter((message) => !obsoleteMessages.includes(message));
                 yield conversations_1.default.updateOne({ _id: conversation._id }, { $set: { messages: filteredConversationMessages } });
             }));
             yield Promise.all(conversationProcess);
         }
-    }), (1000 * 60 * 5));
+    }), 1000 * 60 * 5);
 };
 Processes.notificationProcess = () => {
     console.log("\x1b[33m%s\x1b[0m", "[+] Notifications process started ...");
@@ -72,15 +85,29 @@ Processes.notificationProcess = () => {
         const users = yield users_1.default.find({ "notifications.0": { $exists: true } });
         if (users) {
             const userProcess = users.map((user) => __awaiter(void 0, void 0, void 0, function* () {
-                const notifications = user.notifications.filter(notification => { if (notification.timeStamp) {
-                    return notification.timeStamp + 86400000 > Date.now();
-                } });
+                const notifications = user.notifications.filter((notification) => {
+                    if (notification.timeStamp) {
+                        return notification.timeStamp + 86400000 > Date.now();
+                    }
+                });
                 yield user.updateOne({
-                    notifications
+                    notifications,
                 });
             }));
             yield Promise.all(userProcess);
         }
     }), 10000);
 };
+Processes.tempProcess = () => __awaiter(void 0, void 0, void 0, function* () {
+    const users = yield users_1.default.find({ defaultProfileColor: { $exists: true } });
+    if (users) {
+        const userProcess = users.map((user) => __awaiter(void 0, void 0, void 0, function* () {
+            const defaultProfileColor = helpers_1.default.generateHexColorString();
+            yield user.updateOne({
+                defaultProfileColor,
+            });
+        }));
+        yield Promise.all(userProcess);
+    }
+});
 exports.default = Processes;

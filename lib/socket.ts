@@ -207,7 +207,10 @@ class SocketLib {
           conversationId
         ).populate<{ messages: MessageInterfacePopulated[] }>({
           path: "messages",
-          populate: { path: "senderId", select: "_id username profilePic" },
+          populate: {
+            path: "senderId",
+            select: "_id username profilePic defaultProfileColor",
+          },
         });
         return updatedPreviousMessages?.messages;
       }

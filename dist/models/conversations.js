@@ -17,36 +17,41 @@ const joi_1 = __importDefault(require("joi"));
 const mongoose_1 = __importDefault(require("mongoose"));
 const message_1 = __importDefault(require("./message"));
 const users_1 = __importDefault(require("./users"));
+const helpers_1 = __importDefault(require("../lib/helpers"));
 const conversationSchema = new mongoose_1.default.Schema({
     users: [{ type: String, ref: "User" }],
     type: { type: String, enum: ["group", "single"] },
     name: { type: String },
-    created: { default: Date.now(), type: Number },
+    created: { default: Date.now, type: Number },
     messages: [{ type: mongoose_1.default.Schema.Types.ObjectId, ref: "Message" }],
     conversationPic: {
         url: { type: String },
-        public_id: { type: String }
+        public_id: { type: String },
     },
-    lastSeen: { type: Number }
+    defaultConversationColor: {
+        type: String,
+        default: helpers_1.default.generateHexColorString,
+    },
+    lastSeen: { type: Number },
 });
 const conversationSchemas = {
     createConversationSchema: joi_1.default.object({
         type: joi_1.default.string().required(),
         users: joi_1.default.array().min(1).required(),
-        name: joi_1.default.string()
+        name: joi_1.default.string(),
     }),
     addUserSchema: joi_1.default.object({
         conversationId: joi_1.default.string().required(),
         users: joi_1.default.array().required(),
-        groupKey: joi_1.default.string().required()
+        groupKey: joi_1.default.string().required(),
     }),
     deleteConversationSchema: joi_1.default.object({
-        conversationId: joi_1.default.string().required()
+        conversationId: joi_1.default.string().required(),
     }),
     conversationPicUploadSchema: joi_1.default.object({
         conversationId: joi_1.default.string().required(),
-        image: joi_1.default.string().required()
-    })
+        image: joi_1.default.string().required(),
+    }),
 };
 exports.conversationSchemas = conversationSchemas;
 conversationSchema.post("findOneAndDelete", function (doc) {
@@ -57,10 +62,10 @@ conversationSchema.post("findOneAndDelete", function (doc) {
                 const _user = yield users_1.default.findById(user);
                 if (_user) {
                     const filteredConversations = _user.conversations.filter((conversation) => !doc._id.equals(conversation));
-                    const filteredConversationKeys = _user.conversationKeys.filter(conversation => !doc._id.equals(conversation.conversationId));
+                    const filteredConversationKeys = _user.conversationKeys.filter((conversation) => !doc._id.equals(conversation.conversationId));
                     _user.set({
                         conversations: filteredConversations,
-                        conversationKeys: filteredConversationKeys
+                        conversationKeys: filteredConversationKeys,
                     });
                     yield _user.save();
                 }
