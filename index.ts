@@ -16,7 +16,7 @@ const httpServer = http.createServer(app);
 const httpsServer = https.createServer(
   {
     key: process.env.SERVER_KEY,
-    cert: process.env.SERVER_CERT,
+    cert: process.env.FULL_CHAIN,
     ca: process.env.CA,
   },
   app
