@@ -4,7 +4,7 @@ import jwt from "jsonwebtoken";
 import { MessageInterface, UserInterface } from "./types";
 import Conversation from "../models/conversations";
 import User from "../models/users";
-import _, { random } from "lodash";
+import _ from "lodash";
 
 class Helpers {
   static passwordHasher = (str: string) => {
