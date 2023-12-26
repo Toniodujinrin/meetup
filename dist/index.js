@@ -19,7 +19,7 @@ const app = (0, express_1.default)();
 const httpServer = http_1.default.createServer(app);
 const httpsServer = https_1.default.createServer({
     key: process.env.SERVER_KEY,
-    cert: process.env.FULL_CHAIN,
+    cert: process.env.SERVER_CERT,
     ca: process.env.CA,
 }, app);
 let io;
