@@ -36,6 +36,7 @@ Processes.envChecker = () => {
         process.env.SERVER_CERT,
         process.env.SERVER_KEY,
         process.env.CLOUDINARY_URL,
+        process.env.FULL_CHAIN,
     ];
     for (let i of envVariables) {
         if (!i) {
