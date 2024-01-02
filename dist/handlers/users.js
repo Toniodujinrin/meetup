@@ -129,6 +129,7 @@ userEmiter.on("create user", ({ req, res }) => __awaiter(void 0, void 0, void 0,
         }
     }
     catch (err) {
+        console.log(err);
         res.status(http_status_codes_1.StatusCodes.INTERNAL_SERVER_ERROR).send("server error");
     }
 }));

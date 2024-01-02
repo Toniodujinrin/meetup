@@ -25,7 +25,10 @@ const usersSchema = new mongoose_1.default.Schema({
     phone: String,
     firstName: { type: String, trim: true, minLength: 2, maxLength: 50 },
     lastName: { type: String, trim: true, minLength: 2, maxLength: 50 },
-    defaultProfileColor: { type: String, default: helpers_1.default.generateUserToken },
+    defaultProfileColor: {
+        type: String,
+        default: helpers_1.default.generateHexColorString,
+    },
     emailVerified: { default: false, type: Boolean },
     accountVerified: { default: false, type: Boolean },
     pendingContactsSent: [{ type: String, ref: "User" }],

@@ -99,6 +99,7 @@ userEmiter.on("create user", async ({ req, res }) => {
         .json({ status: "success" });
     }
   } catch (err) {
+    console.log(err);
     res.status(StatusCodes.INTERNAL_SERVER_ERROR).send("server error");
   }
 });
