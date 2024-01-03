@@ -31,7 +31,7 @@ const socketHandler = (io: Server) => {
           conversationId,
           socket
         );
-        io.to(conversationId).emit("previousMessages", previousMessages);
+        socket.emit("previousMessages", previousMessages);
         const onlineUsers = await SocketLib.getAllSocketsInRoom(
           io,
           conversationId
