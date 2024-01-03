@@ -31,7 +31,7 @@ const socketHandler = (io) => {
                 socket.join(conversationId);
                 yield socket_1.default.clearNotifications(conversationId, socket);
                 const previousMessages = yield socket_1.default.getPreviousMessages(conversationId, socket);
-                socket.emit("previousMessages", previousMessages);
+                io.to(conversationId).emit("previousMessages", previousMessages);
                 const onlineUsers = yield socket_1.default.getAllSocketsInRoom(io, conversationId);
                 io.to(conversationId).emit("onlineUsers", onlineUsers);
             }
