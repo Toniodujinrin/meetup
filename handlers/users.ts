@@ -30,10 +30,11 @@ userEmiter.on("get user", async ({ params, res }) => {
       firstName: 1,
       lastName: 1,
       lastSeen: 1,
-      resgistration: 1,
+      registration: 1,
       phone: 1,
-      boi: 1,
+      bio: 1,
       profilePic: 1,
+      defaultProfileColor: 1,
     });
     if (user) res.status(StatusCodes.OK).json(user);
     else res.status(StatusCodes.NOT_FOUND).send("user not found");
