@@ -229,32 +229,39 @@ userEmiter.on("resend otp", ({ req, res }) => __awaiter(void 0, void 0, void 0, 
 }));
 userEmiter.on("get conversations", ({ req, res }) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const response = yield users_1.default.findById(req.userId).populate({
+        const user = yield users_1.default.findById(req.userId).populate({
             path: "conversations",
             populate: { path: "messages" },
         });
-        if (!response)
+        if (!user)
             return res.status(http_status_codes_1.StatusCodes.NOT_FOUND);
-        let editedConversations = response.conversations.map((conversationId) => __awaiter(void 0, void 0, void 0, function* () {
+        let conversations = user.conversations.map((conversationId) => __awaiter(void 0, void 0, void 0, function* () {
             const normalizedConversation = yield helpers_1.default.normalizeConversation(conversationId, req.userId);
             return normalizedConversation;
         }));
-        let result = yield Promise.all(editedConversations);
-        const resultWithMessages = result.filter((conversation) => {
+        let normalizedConversations = yield Promise.all(conversations);
+        const normalizedConversationsWithMessages = normalizedConversations.filter((conversation) => {
             if (conversation) {
                 return conversation.lastMessage;
             }
         });
-        resultWithMessages.sort((r1, r2) => r1 && r2 && r1.lastMessage && r2.lastMessage
-            ? r2.lastMessage.timeStamp - r1.lastMessage.timeStamp
+        normalizedConversationsWithMessages.sort((conversation1, conversation2) => conversation1 &&
+            conversation2 &&
+            conversation1.lastMessage &&
+            conversation2.lastMessage
+            ? conversation2.lastMessage.timeStamp -
+                conversation1.lastMessage.timeStamp
             : 0);
-        const resultWithoutMessages = result.filter((conversation) => {
+        const normalizedConversationsWithoutMessages = normalizedConversations.filter((conversation) => {
             if (conversation) {
                 return !conversation.lastMessage;
             }
         });
-        result = [...resultWithMessages, ...resultWithoutMessages];
-        res.status(http_status_codes_1.StatusCodes.OK).json(result);
+        normalizedConversations = [
+            ...normalizedConversationsWithMessages,
+            ...normalizedConversationsWithoutMessages,
+        ];
+        res.status(http_status_codes_1.StatusCodes.OK).json(normalizedConversations);
     }
     catch (error) {
         console.log(error);
@@ -373,9 +380,8 @@ userEmiter.on("search user", ({ req, res }) => __awaiter(void 0, void 0, void 0,
     const { email } = req.params;
     try {
         const expression = `.*${email}.*`;
-        const regex = new RegExp(expression, "g");
         const result = yield users_1.default.find({
-            _id: { $regex: regex },
+            _id: { $regex: new RegExp(expression, "g") },
             isVerified: true,
         }).select({ username: 1, profilePic: 1, defaultProfileColor: 1 });
         res.status(http_status_codes_1.StatusCodes.OK).json(result);
